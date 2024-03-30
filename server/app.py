@@ -10,12 +10,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///social_media.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
-migrate = Migrate(app, db)
 db.init_app(app)
+migrate = Migrate(app, db)
 api = Api(app)
 
-class Friendships(Resource):
-    def post(self):
-        pass
 
-api.add_resource("/frienship", Friendships)

@@ -1,8 +1,8 @@
-"""initial migration
+"""init
 
-Revision ID: 955cba38ab38
+Revision ID: fbc9d6a66688
 Revises: 
-Create Date: 2024-03-30 12:54:23.104297
+Create Date: 2024-03-31 20:14:11.376563
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '955cba38ab38'
+revision = 'fbc9d6a66688'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,11 +25,11 @@ def upgrade():
     )
     op.create_table('friendships',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user1_id', sa.Integer(), nullable=True),
-    sa.Column('user2_id', sa.Integer(), nullable=True),
+    sa.Column('sender_id', sa.Integer(), nullable=True),
+    sa.Column('reciever_id', sa.Integer(), nullable=True),
     sa.Column('_status', sa.Enum('pending', 'accepted', 'rejected', name='friendship_status'), nullable=True),
-    sa.ForeignKeyConstraint(['user1_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['user2_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['reciever_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['sender_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

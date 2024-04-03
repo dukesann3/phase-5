@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 import ipdb
@@ -79,9 +79,24 @@ class User(db.Model, SerializerMixin):
 
     @hybrid_property
     def friends(self):
-        pass
+        friends = []
+        for friendship in self.friendships:
+            if not self.id == friendship.reciever_id and friendship.status == "accepted":
+                friends.append(friendship.reciever)
+            elif not self.id == friendship.sender_id and friendship.status == "accepted":
+                friends.append(friendship.sender)
 
-    serialize_rules = ("-friendships.sender","-friendships.reciever")
+        return friends
+    
+    @hybrid_method
+    def send_friend_request(self, potential_friend_id):
+        friendship = Friendship(sender_id=self.id, reciever_id=potential_friend_id)
+        notification = Notification(notification_sender_id=self.id, notification_reciever_id=potential_friend_id,
+                                    text=f"{self.name} wants to be friends with you")
+        db.session.add_all([friendship, notification])
+        db.session.commit()
+
+    serialize_rules = ("-friendships.sender","-friendships.reciever", "-notifications.notification_sender", "-notifications.notification_reciever")
 
     def __repr__(self):
         return f'username: {self.name}'

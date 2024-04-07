@@ -84,8 +84,8 @@ class Notification(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     notification_sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="notification_sender_id", nullable=False)
     notification_reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="notification_reciever_id", nullable=False)
-    text = db.Column(db.String, nullable=False)
-    notification_type = db.Column(db.Enum("Friend Request", name="notification_type"), default="Friend Request")
+    text = db.Column(db.String, nullable=True)
+    notification_type = db.Column(db.Enum("Friend Request", "Comment", "Like", "Message", name="notification_type"), default="Friend Request")
 
     notification_sender = db.relationship("User", foreign_keys=[notification_sender_id], back_populates="notifications")
     notification_reciever = db.relationship("User", foreign_keys=[notification_reciever_id], back_populates="notifications")
@@ -136,7 +136,7 @@ class User(db.Model, SerializerMixin):
     def send_friend_request(self, potential_friend_id):
         friendship = Friendship(sender_id=self.id, reciever_id=potential_friend_id)
         notification = Notification(notification_sender_id=self.id, notification_reciever_id=potential_friend_id,
-                                    text=f"{self.name} wants to be friends with you")
+                                    notification_type="Friend Request", text=f"{self.name} wants to be friends with you")
         db.session.add_all([friendship, notification])
         db.session.commit()
 

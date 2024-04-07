@@ -30,7 +30,6 @@ class FriendshipRequest(Resource):
         try:
             sender = User.query.filter(User.id == response["sender_id"]).first()
             sender.send_friend_request(response["reciever_id"])
-            print(User.query.filter(User.id == response["reciever_id"]).first().notifications)
             return make_response({"message": "Friend request sent!"}, 200)
         except:
             return make_response({"message": "Friend request could not be sent"}, 404)

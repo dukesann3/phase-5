@@ -18,11 +18,12 @@ class Friendship(db.Model, SerializerMixin):
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="friendships")
     reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="friendships")
 
-    notifications = db.relationship("Notification", 
+    notification = db.relationship("Notification", 
                                     secondary="users",
                                     primaryjoin="or_(Friendship.sender_id == User.id, Friendship.reciever_id == User.id)",
-                                    secondaryjoin="or_(User.id == Notification.notification_sender_id, User.id == Notification.notification_reciever_id)",
-                                    back_populates="friendships",
+                                    secondaryjoin='''and_(or_(User.id == Notification.notification_sender_id, 
+                                    User.id == Notification.notification_reciever_id), Notification.notification_type == 'Friend Request')''',
+                                    back_populates="friendship",
                                     viewonly=True)
 
     serialize_rules = ("-sender.friendships","-reciever.friendships","-notifications.friendships")
@@ -31,24 +32,9 @@ class Friendship(db.Model, SerializerMixin):
     def status(self):
         return self._status
     
-    @hybrid_method
-    def accept_friend_request(self):
-        #delete notification
-        db.session.delete(self.notifications)
-        db.session.commit()
-
-        self.status = "accepted"
-        db.session.add(self)
-        db.session.commit()
-
-    @hybrid_method
-    def reject_friend_request(self):
-        #delete notification and friendship instances
-        pass
-    
     @status.setter
     def status(self, value):
-        if not value in ["pending, accepted, rejected"]:
+        if not value in ["pending", "accepted", "rejected"]:
             raise ValueError("Friendship status must be pending, accepted, or rejected.")
         self._status = value
 
@@ -74,9 +60,8 @@ class Friendship(db.Model, SerializerMixin):
             return value
         return value
 
-    
     def __repr__(self):
-        return f'Sender ID: {self.sender_id}, Reciever ID: {self.reciever_id}'
+        return f'Sender ID: {self.sender_id}, Reciever ID: {self.reciever_id}, Status: {self._status}'
     
 class Notification(db.Model, SerializerMixin):
     __tablename__ = "notifications"
@@ -85,24 +70,21 @@ class Notification(db.Model, SerializerMixin):
     notification_sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="notification_sender_id", nullable=False)
     notification_reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="notification_reciever_id", nullable=False)
     text = db.Column(db.String, nullable=False)
-    notification_type = db.Column(db.Enum("Friend Request", name="notification_type"), default="Friend Request")
+    notification_type = db.Column(db.Enum("Friend Request", "Comment", "Message", "Like", name="notification_type"), default="Friend Request")
 
     notification_sender = db.relationship("User", foreign_keys=[notification_sender_id], back_populates="notifications")
     notification_reciever = db.relationship("User", foreign_keys=[notification_reciever_id], back_populates="notifications")
 
-    friendships = db.relationship("Friendship", 
+    friendship = db.relationship("Friendship", 
                                     secondary="users",
-                                    primaryjoin="or_(Notification.notification_sender_id == User.id, Notification.notification_reciever_id == User.id)",
+                                    primaryjoin='''or_(and_(Notification.notification_sender_id == User.id, Notification.notification_reciever_id == User.id),
+                                    (Notification.notification_type == 'Friend Request'))''',
                                     secondaryjoin="or_(User.id == Friendship.sender_id, User.id == Friendship.reciever_id)",
-                                    back_populates="notifications",
+                                    back_populates="notification",
                                     viewonly=True)
 
-    @hybrid_property
-    def notification_type(self):
-        return self._notification_type
-
     def __repr__(self):
-        return f'request type: {self._notification_type} sender ID: {self.notification_sender_id} reciever ID: {self.notification_reciever_id}'
+        return f'request type: {self.notification_type} sender ID: {self.notification_sender_id} reciever ID: {self.notification_reciever_id}'
 
 
 class User(db.Model, SerializerMixin):
@@ -132,14 +114,32 @@ class User(db.Model, SerializerMixin):
 
         return friends
     
+    #potential friend is an id since it is not so important since you want a lot of friends
     @hybrid_method
     def send_friend_request(self, potential_friend_id):
         friendship = Friendship(sender_id=self.id, reciever_id=potential_friend_id)
         notification = Notification(notification_sender_id=self.id, notification_reciever_id=potential_friend_id,
-                                    text=f"{self.name} wants to be friends with you")
+                                    text=f"{self.name} wants to be friends with you",notification_type="Friend Request")
         db.session.add_all([friendship, notification])
         db.session.commit()
 
+    #friend request not in id form since it must be a specific friend request
+    @hybrid_method
+    def respond_to_friend_request(self, friend_request, response):
+        if not response in ["accepted", "rejected"]:
+            print(response)
+            raise ValueError("Response must be either accepted or rejected")
+        
+        if response == "accepted":
+            friend_request.status = response
+            db.session.add(friend_request)
+            notification = friend_request.notification[0]
+            db.session.delete(notification)
+        elif response == "rejected":
+            notification = friend_request.notification[0]
+            db.session.delete(friend_request)
+            db.session.delete(notification)
+            
     serialize_rules = ("-friendships.sender","-friendships.reciever", "-notifications.notification_sender", "-notifications.notification_reciever","-friendships.notifications")
 
     def __repr__(self):

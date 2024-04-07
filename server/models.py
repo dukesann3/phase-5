@@ -11,8 +11,8 @@ class Friendship(db.Model, SerializerMixin):
     __tablename__ = "friendships"
 
     id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id")
-    reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="reciever_id")
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id", nullable=False)
+    reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="reciever_id", nullable=False)
     _status = db.Column(db.Enum("pending", "accepted", "rejected", name="friendship_status"), default="pending")
 
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="friendships")

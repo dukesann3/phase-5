@@ -9,6 +9,12 @@ db = SQLAlchemy()
 
 class Friendship(db.Model, SerializerMixin):
     __tablename__ = "friendships"
+    __table_args__ = (
+        db.UniqueConstraint("sender_id", "reciever_id", name="unique_foreign_keys"),
+    )
+
+    #not sure if check constraint is working, but one of them prevents same key from being put in the db.
+    #dual friendships may exist as long as the requests are pending. If not, then that is a problem.
 
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id", nullable=False)
@@ -34,28 +40,24 @@ class Friendship(db.Model, SerializerMixin):
     
     @status.setter
     def status(self, value):
+        sender_id = self.sender_id
+        reciever_id = self.reciever_id
+
+        opposite_friend_request = Friendship.query.filter(Friendship.sender_id == reciever_id and Friendship.reciever_id == sender_id).first()
         if not value in ["pending", "accepted", "rejected"]:
             raise ValueError("Friendship status must be pending, accepted, or rejected.")
+        elif opposite_friend_request:
+            if not opposite_friend_request._status == value:
+                raise ValueError('''With a two way friend request, it cannot have one request that is pending
+                                 where the other being accepted or rejected. You will need to 
+                                 delete the sender's request, then update it to either accepted or rejected''')
         self._status = value
-
+        
     @validates("sender_id", "reciever_id")
     def validate_ids(self, key, value):
         if key == "reciever_id":
-            #find user with same sender id ... self.sender_id is now in the system
-            potential_duplicate_friendship = Friendship.query.filter(Friendship.sender_id == self.sender_id and Friendship.reciever_id == value).all()
-            oppo_friend_request = Friendship.query.filter(Friendship.reciever_id == self.sender_id and Friendship.sender_id == value).first()
-
-            if self.sender_id == value and key == "reciever_id":
-                raise ValueError("Reciever id and Sender id must be a different value from each other. A user cannot friend him/herself.")
-            elif potential_duplicate_friendship:
-                raise ValueError("There cannot be duplicate friendship")
-            elif oppo_friend_request:
-                try:
-                    if oppo_friend_request.status == "pending":
-                        raise ValueError("A two way friend request cannot have one request have anything other than pending")
-                except:
-                    return 
-                return value     
+            if self.sender_id == value:
+                raise ValueError("Sender and reciever for a friendship request cannot be the same person.")
         elif key == "sender_id":
             return value
         return value
@@ -114,31 +116,40 @@ class User(db.Model, SerializerMixin):
 
         return friends
     
-    #potential friend is an id since it is not so important since you want a lot of friends
     @hybrid_method
     def send_friend_request(self, potential_friend_id):
+
         friendship = Friendship(sender_id=self.id, reciever_id=potential_friend_id)
         notification = Notification(notification_sender_id=self.id, notification_reciever_id=potential_friend_id,
-                                    text=f"{self.name} wants to be friends with you",notification_type="Friend Request")
+                                    text=f"{self.name} wants to be friends with you", notification_type="Friend Request")
         db.session.add_all([friendship, notification])
         db.session.commit()
 
-    #friend request not in id form since it must be a specific friend request
+
     @hybrid_method
-    def respond_to_friend_request(self, friend_request, response):
+    def respond_to_friend_request(self, friend_request_id, response):
         if not response in ["accepted", "rejected"]:
-            print(response)
             raise ValueError("Response must be either accepted or rejected")
         
+        f = Friendship.query.filter(Friendship.id == friend_request_id).first()
+        n = f.notification[0]
+        
+        #must delete opposite friend request it is a two way friend request before accepting or rejecting
+        oppo_friend_request = Friendship.query.filter(Friendship.sender_id == f.reciever_id and Friendship.reciever_id == f.sender_id).first()
+        if oppo_friend_request:
+            if not oppo_friend_request.status == response:
+                db.session.delete(oppo_friend_request)
+                db.session.commit() 
+        
         if response == "accepted":
-            friend_request.status = response
-            db.session.add(friend_request)
-            notification = friend_request.notification[0]
-            db.session.delete(notification)
+            f.status = response
+            db.session.add(f)
+            db.session.delete(n)
+            db.session.commit()
         elif response == "rejected":
-            notification = friend_request.notification[0]
-            db.session.delete(friend_request)
-            db.session.delete(notification)
+            db.session.delete(f)
+            db.session.delete(n)
+            db.session.commit()
             
     serialize_rules = ("-friendships.sender","-friendships.reciever", "-notifications.notification_sender", "-notifications.notification_reciever","-friendships.notifications")
 

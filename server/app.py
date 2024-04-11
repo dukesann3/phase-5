@@ -38,7 +38,7 @@ class SpecificUsers(Resource):
     def post(self):
         pass
 
-class SendFriendRequest(Resource):
+class FriendRequest(Resource):
     def post(self):
         response = request.get_json()
         requester_id = int(response["sender_id"])
@@ -47,16 +47,37 @@ class SendFriendRequest(Resource):
         try:
             requester = User.query.filter(User.id == requester_id).first()
             requester.send_friend_request(reciever_id)
-            reciever = User.query.filter(User.id == reciever_id).first().to_dict()
-            return make_response(reciever, 200)
+            created_request = Friendship.query.filter(Friendship.sender_id == requester_id and Friendship.reciever_id == reciever_id).first().to_dict()
+            return make_response(created_request, 200)
         except:
             return make_response({"message": "Either the sender or reciever of the friend request does not exist"}, 404)
+        
+    def patch(self):
+        response = request.get_json()
+        friend_request_id = int(response["friend_request_id"])
+        friend_request_response = response["friend_request_response"]
+
+        try:
+            f = Friendship.query.filter(Friendship.id == friend_request_id).first()
+            print("2")
+            friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
+            print("3")
+            friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
+            print("4")
+            if friend_request_response == "accepted":
+                print("5")
+                updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
+                return make_response(updated_friend_request, 200)
+            elif friend_request_response == "rejected":
+                return make_response({"message": "Successfully rejected friend request!"}, 200)
+        except:
+            return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         
 
 api.add_resource(Users, "/users")
 api.add_resource(Friendships, "/friendships")
 api.add_resource(SpecificUsers, "/users/<int:id>")
-api.add_resource(SendFriendRequest, "/friendships/send_request")
+api.add_resource(FriendRequest, "/friendships/send_request")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

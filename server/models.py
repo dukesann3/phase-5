@@ -3,6 +3,8 @@ from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
+from datetime import datetime
+
 import ipdb
 
 db = SQLAlchemy()
@@ -21,6 +23,9 @@ class Friendship(db.Model, SerializerMixin):
     reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="reciever_id", nullable=False)
     _status = db.Column(db.Enum("pending", "accepted", "rejected", name="friendship_status"), default="pending")
 
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="friendships")
     reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="friendships")
 
@@ -32,7 +37,9 @@ class Friendship(db.Model, SerializerMixin):
                                     back_populates="friendship",
                                     viewonly=True)
 
-    serialize_rules = ("-sender.friendships","-reciever.friendships","-notifications.friendships")
+    serialize_rules = ("-sender.friendships","-reciever.friendships","-notification.friendship", 
+                       "-notification.notification_sender", "-notification.notification_reciever",
+                       "-sender.notifications", "-reciever.notifications")
 
     @hybrid_property
     def status(self):
@@ -67,12 +74,18 @@ class Friendship(db.Model, SerializerMixin):
     
 class Notification(db.Model, SerializerMixin):
     __tablename__ = "notifications"
+    __table_args__ = (
+        db.UniqueConstraint("notification_sender_id", "notification_reciever_id",
+                            "text", "notification_type", name="notification_uniqueness"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     notification_sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="notification_sender_id", nullable=False)
     notification_reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="notification_reciever_id", nullable=False)
     text = db.Column(db.String, nullable=False)
     notification_type = db.Column(db.Enum("Friend Request", "Comment", "Message", "Like", name="notification_type"), default="Friend Request")
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
 
     notification_sender = db.relationship("User", foreign_keys=[notification_sender_id], back_populates="notifications")
     notification_reciever = db.relationship("User", foreign_keys=[notification_reciever_id], back_populates="notifications")
@@ -94,6 +107,8 @@ class User(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
 
     friendships = db.relationship(
         "Friendship",
@@ -102,7 +117,7 @@ class User(db.Model, SerializerMixin):
 
     notifications = db.relationship(
         "Notification",
-        primaryjoin="(User.id == Notification.notification_reciever_id)"
+        primaryjoin="(User.id == Notification.notification_reciever_id)",
     )
 
     @hybrid_property
@@ -131,15 +146,18 @@ class User(db.Model, SerializerMixin):
         if not response in ["accepted", "rejected"]:
             raise ValueError("Response must be either accepted or rejected")
         
+
         f = Friendship.query.filter(Friendship.id == friend_request_id).first()
-        n = f.notification[0]
+        n = Notification.query.filter(Notification.notification_sender_id == f.sender_id and Notification.notification_reciever_id == f.reciever_id and Notification.notification_type == "Friend Request").first()
         
         #must delete opposite friend request it is a two way friend request before accepting or rejecting
-        oppo_friend_request = Friendship.query.filter(Friendship.sender_id == f.reciever_id and Friendship.reciever_id == f.sender_id).first()
-        if oppo_friend_request:
-            if not oppo_friend_request.status == response:
-                db.session.delete(oppo_friend_request)
-                db.session.commit() 
+        oppo_f = Friendship.query.filter(Friendship.sender_id == f.reciever_id and Friendship.reciever_id == f.sender_id).first()
+        oppo_n = Notification.query.filter(Notification.notification_sender_id == f.reciever_id and Notification.notification_reciever_id == f.sender_id and Notification.notification_type == "Friend Request").first()
+        if oppo_f:
+            if not oppo_f.status == response:
+                db.session.delete(oppo_n)
+                db.session.delete(oppo_f)
+                db.session.commit()
         
         if response == "accepted":
             f.status = response
@@ -151,10 +169,11 @@ class User(db.Model, SerializerMixin):
             db.session.delete(n)
             db.session.commit()
             
-    serialize_rules = ("-friendships.sender","-friendships.reciever", "-notifications.notification_sender", "-notifications.notification_reciever","-friendships.notifications")
+    serialize_rules = ("-friendships.reciever","-friendships.sender", "-notifications.notification_sender"
+                       , "-notifications.notification_reciever", "-notifications.friendship", "-friendships.notification")
 
     def __repr__(self):
-        return f'username: {self.name}'
+        return f'username: {self.name}, friendships: {self.friendships}'
     
 
     

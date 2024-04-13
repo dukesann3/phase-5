@@ -139,6 +139,7 @@ class User(db.Model, SerializerMixin):
                                     text=f"{self.name} wants to be friends with you", notification_type="Friend Request")
         db.session.add_all([friendship, notification])
         db.session.commit()
+        return friendship
 
 
     @hybrid_method

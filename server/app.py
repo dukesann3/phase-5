@@ -19,6 +19,21 @@ class Users(Resource):
     def get(self):
         users = [user.to_dict() for user in User.query.all()]
         return make_response(users, 200)
+
+    def post(self):
+        response = request.get_json()
+        name = response["name"]
+
+        #add username and password when you are working on it.
+        #But, not now 4-10-24
+
+        try:
+            new_user = User(name=name)
+            db.session.add(new_user)
+            db.session.commit()
+            return make_response(new_user.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, new user could not be made"}, 404)
     
 class Friendships(Resource):
     def get(self):
@@ -59,13 +74,9 @@ class FriendRequest(Resource):
 
         try:
             f = Friendship.query.filter(Friendship.id == friend_request_id).first()
-            print("2")
             friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
-            print("3")
             friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
-            print("4")
             if friend_request_response == "accepted":
-                print("5")
                 updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
                 return make_response(updated_friend_request, 200)
             elif friend_request_response == "rejected":
@@ -73,7 +84,7 @@ class FriendRequest(Resource):
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         
-
+    
 api.add_resource(Users, "/users")
 api.add_resource(Friendships, "/friendships")
 api.add_resource(SpecificUsers, "/users/<int:id>")

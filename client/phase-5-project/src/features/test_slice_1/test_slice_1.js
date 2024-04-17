@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+//action.payload is the value being transmitted through user/computer input.
+//in theory, can use it with any object? 
+
 export const counterSlice = createSlice({
   name: 'counter',
   initialState: {

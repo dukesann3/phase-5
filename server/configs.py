@@ -4,7 +4,6 @@ from flask_restful import Api
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
-import os
 
 convention = {
     "ix": 'ix_%(column_0_label)s',

@@ -19,11 +19,22 @@ class Login(Resource):
 
         if potential_user.authenticate(response["password"]):
             session["user_id"] = potential_user.id
-            # return make_response(potential_user.to_dict(), 200)
-            return make_response({"session": session}, 200)
+            return make_response(potential_user.to_dict(), 200)
         
         return make_response({"message": "Error, could not find username or password in database"}, 404)
-        
+    
+class Logout(Resource):
+    def delete(self):
+        session["user_id"] = None
+        return make_response("message": "Logout successful", 204)
+    
+class CheckSession(Resource):
+    def get(self):
+        user = User.query.filter(User.id == session["user_id"]).first()
+        if user:
+            return make_response(user.to_dict(), 200)
+        else:
+            return make_response({"message": "Error, could not find user data in session"}, 404)
 
 class Users(Resource):
     def get(self):
@@ -101,6 +112,9 @@ api.add_resource(Friendships, "/friendships")
 api.add_resource(SpecificUsers, "/users/<int:id>")
 api.add_resource(FriendRequest, "/friendships/send_request")
 api.add_resource(Login, "/login")
+api.add_resource(Logout, "/logout")
+#should run this whenever the user first lands, so use useEffect
+api.add_resource(CheckSession, "/checksession")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

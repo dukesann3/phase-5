@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
 
-from flask import Flask, jsonify, request, make_response
-from flask_migrate import Migrate
-from flask_restful import Api, Resource
-from flask_bcrypt import Bcrypt
-from models import db, User, Friendship, Notification
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///social_media.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.json.compact = False
-
-migrate = Migrate(app, db, render_as_batch=True)
-db.init_app(app)
-api = Api(app)
-bcrypt = Bcrypt(app)
+from flask import jsonify, request, make_response
+from flask_restful import Resource
+from models import User, Friendship, Notification
+from configs import api, app, db
 
 #============ For Testing Purposes Only!!! ==================================#
 class Users(Resource):
@@ -78,11 +67,14 @@ class FriendRequest(Resource):
             f = Friendship.query.filter(Friendship.id == friend_request_id).first()
             friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
             friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
+
             if friend_request_response == "accepted":
                 updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
                 return make_response(updated_friend_request, 200)
+            
             elif friend_request_response == "rejected":
                 return make_response({"message": "Successfully rejected friend request!"}, 200)
+            
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         

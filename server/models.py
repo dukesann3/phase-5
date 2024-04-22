@@ -1,14 +1,10 @@
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from datetime import datetime
-import bcrypt
-
+from configs import bcrypt, db
 import ipdb
-
-db = SQLAlchemy()
 
 class Friendship(db.Model, SerializerMixin):
     __tablename__ = "friendships"

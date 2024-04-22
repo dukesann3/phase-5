@@ -1,14 +1,12 @@
 import { useSelector, useDispatch } from "react-redux"
-import { increment, decrement, incrementByAmount } from "../features/test_slice_1/test_slice_1"
+import { increment, decrement, incrementByAmount, selectAddedString} from "../features/test_slice_1/test_slice_1"
 import { fetchAllUsers } from "../features/test_slice_2/test_slice_2"
 
 function Tester(){
 
     const count = useSelector((state) => state.test_counter.value)
     const users = useSelector((state) => state.test_thunk.value)
-
-    console.log(users)
-    console.log(count)
+    const countWithString = selectAddedString(count)
 
     const dispatch = useDispatch()
 
@@ -28,6 +26,8 @@ function Tester(){
             <div>
                 <p>This is Tester</p>
                 <span>{count}</span>
+                <p>Counter With String</p>
+                <span>{countWithString}</span>
                 <div>
                     <button onClick={() => dispatch(increment())}>+</button>
                     <button onClick={() => dispatch(decrement())}>-</button>

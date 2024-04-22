@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, createSelector } from '@reduxjs/toolkit'
 
 //action.payload is the value being transmitted through user/computer input.
 //in theory, can use it with any object? 
@@ -24,6 +24,12 @@ export const counterSlice = createSlice({
       state.value += action.payload
     },
   },
+})
+
+//works now!!!
+export const selectAddedString = createSelector([(state)=>state], (a) => {
+  console.log("in?")
+  return a + "string"
 })
 
 // Action creators are generated for each case reducer function

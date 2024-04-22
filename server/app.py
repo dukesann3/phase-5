@@ -1,11 +1,30 @@
 #!/usr/bin/env python3
 
-from flask import jsonify, request, make_response
+from flask import jsonify, request, make_response, session
 from flask_restful import Resource
 from models import User, Friendship, Notification
 from configs import api, app, db
 
 #============ For Testing Purposes Only!!! ==================================#
+class Friendships(Resource):
+    def get(self):
+        friendships = [friendship.to_dict() for friendship in Friendship.query.all()]
+        return make_response(friendships, 200)
+#============ For Testing Purposes Only!!! ==================================#
+
+class Login(Resource):
+    def post(self):
+        response = request.get_json()
+        potential_user = User.query.filter(User.username == response["username"]).first()
+
+        if potential_user.authenticate(response["password"]):
+            session["user_id"] = potential_user.id
+            # return make_response(potential_user.to_dict(), 200)
+            return make_response({"session": session}, 200)
+        
+        return make_response({"message": "Error, could not find username or password in database"}, 404)
+        
+
 class Users(Resource):
     def get(self):
         users = [user.to_dict() for user in User.query.all()]
@@ -13,24 +32,21 @@ class Users(Resource):
 
     def post(self):
         response = request.get_json()
-        name = response["name"]
-
-        #add username and password when you are working on it.
-        #But, not now 4-10-24
+        first_name = response["first_name"]
+        last_name = response["last_name"]
+        username = response["last_name"]
 
         try:
-            new_user = User(name=name)
+            new_user = User(first_name=first_name,
+                            last_name=last_name,
+                            username=username)
+            new_user.password_hash = response["password"]
+
             db.session.add(new_user)
             db.session.commit()
             return make_response(new_user.to_dict(), 200)
         except:
             return make_response({"message": "Error, new user could not be made"}, 404)
-    
-class Friendships(Resource):
-    def get(self):
-        friendships = [friendship.to_dict() for friendship in Friendship.query.all()]
-        return make_response(friendships, 200)
-#============ For Testing Purposes Only!!! ==================================#
 
 class SpecificUsers(Resource):
     def get(self, id):
@@ -78,11 +94,13 @@ class FriendRequest(Resource):
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         
+
     
 api.add_resource(Users, "/users")
 api.add_resource(Friendships, "/friendships")
 api.add_resource(SpecificUsers, "/users/<int:id>")
 api.add_resource(FriendRequest, "/friendships/send_request")
+api.add_resource(Login, "/login")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

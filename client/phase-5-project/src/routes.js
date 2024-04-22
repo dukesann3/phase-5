@@ -19,11 +19,11 @@ const routes = [
                 element: <Login />
             },
             {
-                path: '/home/:username',
+                path: '/home/:userid',
                 element: <Home />
             },
             {
-                path: '/message/:username',
+                path: '/message/:userid',
                 element: <Message />
             },
             {

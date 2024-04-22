@@ -3,6 +3,7 @@
 from flask import Flask, jsonify, request, make_response
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
+from flask_bcrypt import Bcrypt
 from models import db, User, Friendship, Notification
 
 app = Flask(__name__)
@@ -13,6 +14,7 @@ app.json.compact = False
 migrate = Migrate(app, db, render_as_batch=True)
 db.init_app(app)
 api = Api(app)
+bcrypt = Bcrypt(app)
 
 #============ For Testing Purposes Only!!! ==================================#
 class Users(Resource):

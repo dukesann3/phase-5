@@ -4,6 +4,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from datetime import datetime
+import bcrypt
 
 import ipdb
 
@@ -106,7 +107,10 @@ class User(db.Model, SerializerMixin):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    first_name = db.Column(db.String, nullable=False)
+    last_name = db.Column(db.String, nullable=False)
+    username = db.Column(db.Integer, nullable=False)
+    _password_hash = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
 
@@ -119,6 +123,21 @@ class User(db.Model, SerializerMixin):
         "Notification",
         primaryjoin="(User.id == Notification.notification_reciever_id)",
     )
+
+    @hybrid_property
+    def password_hash(self):
+        return self._password_hash
+
+    @password_hash.setter
+    def password_hash(self, password):
+        # utf-8 encoding and decoding is required in python 3
+        password_hash = bcrypt.generate_password_hash(
+            password.encode('utf-8'))
+        self._password_hash = password_hash.decode('utf-8')
+
+    def authenticate(self, password):
+        return bcrypt.check_password_hash(
+            self._password_hash, password.encode('utf-8'))
 
     @hybrid_property
     def friends(self):

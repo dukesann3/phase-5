@@ -12,8 +12,11 @@ class TestModel:
             User.query.delete()
             db.session.commit()
 
-            u1 = User(name="t1")
-            u2 = User(name="t2")
+            u1 = User(first_name="t1", last_name="t2", username="tt1")
+            u1.password_hash = "t1"
+            u2 = User(first_name="t2", last_name="t2", username="tt2")
+            u2.password_hash = "t2"
+
             db.session.add_all([u1, u2])
             db.session.commit()
 
@@ -39,8 +42,11 @@ class TestModel:
             User.query.delete()
             db.session.commit()
 
-            u1 = User(name="t1")
-            u2 = User(name="t2")
+            u1 = User(first_name="t1", last_name="t2", username="tt1")
+            u1.password_hash = "t1"
+            u2 = User(first_name="t2", last_name="t2", username="tt2")
+            u2.password_hash = "t2"
+
             db.session.add_all([u1, u2])
             db.session.commit()
 
@@ -61,8 +67,11 @@ class TestModel:
             User.query.delete()
             db.session.commit()
 
-            u1 = User(name="t1")
-            u2 = User(name="t2")
+            u1 = User(first_name="t1", last_name="t2", username="tt1")
+            u1.password_hash = "t1"
+            u2 = User(first_name="t2", last_name="t2", username="tt2")
+            u2.password_hash = "t2"
+
             db.session.add_all([u1, u2])
             db.session.commit()
 
@@ -89,8 +98,11 @@ class TestModel:
             User.query.delete()
             db.session.commit()
 
-            u1 = User(name="t1")
-            u2 = User(name="t2")
+            u1 = User(first_name="t1", last_name="t2", username="tt1")
+            u1.password_hash = "t1"
+            u2 = User(first_name="t2", last_name="t2", username="tt2")
+            u2.password_hash = "t2"
+            
             db.session.add_all([u1, u2])
             db.session.commit()
 
@@ -116,8 +128,11 @@ class TestModel:
                 User.query.delete()
                 db.session.commit()
 
-                u1 = User(name="t1")
-                u2 = User(name="t2")
+                u1 = User(first_name="t1", last_name="t2", username="tt1")
+                u1.password_hash = "t1"
+                u2 = User(first_name="t2", last_name="t2", username="tt2")
+                u2.password_hash = "t2"
+
                 db.session.add_all([u1, u2])
                 db.session.commit()
 
@@ -139,8 +154,11 @@ class TestModel:
                 User.query.delete()
                 db.session.commit()
 
-                u1 = User(name="t1")
-                u2 = User(name="t2")
+                u1 = User(first_name="t1", last_name="t2", username="tt1")
+                u1.password_hash = "t1"
+                u2 = User(first_name="t2", last_name="t2", username="tt2")
+                u2.password_hash = "t2"
+                
                 db.session.add_all([u1, u2])
                 db.session.commit()
 

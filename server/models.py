@@ -151,7 +151,7 @@ class User(db.Model, SerializerMixin):
 
         friendship = Friendship(sender_id=self.id, reciever_id=potential_friend_id)
         notification = Notification(notification_sender_id=self.id, notification_reciever_id=potential_friend_id,
-                                    text=f"{self.name} wants to be friends with you", notification_type="Friend Request")
+                                    text=f"{self.first_name} wants to be friends with you", notification_type="Friend Request")
         db.session.add_all([friendship, notification])
         db.session.commit()
         return friendship

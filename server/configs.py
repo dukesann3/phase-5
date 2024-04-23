@@ -19,7 +19,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///social_media.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
-app.secret_key = "b'\_5#y2L\"F4Q8z\n\xec]/\'"
+app.secret_key = '''b'\_5#y2L\"F4Q8z\n\xec]/\''''
 
 db = SQLAlchemy(metadata=metadata)
 migrate = Migrate(app, db, render_as_batch=True)

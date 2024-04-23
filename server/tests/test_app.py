@@ -1,8 +1,9 @@
 from models import User, Friendship, Notification
-from app import app, db
+from app import app, db, session
 import ipdb
 
 class TestApp:
+    
     def test_creating_new_user(self):
         pass
 
@@ -16,8 +17,11 @@ class TestApp:
             User.query.delete()
             db.session.commit()
 
-            u1 = User(name="t1")
-            u2 = User(name="t2")
+            u1 = User(first_name="t1", last_name="t2", username="tt1")
+            u1.password_hash = "t1"
+            u2 = User(first_name="t2", last_name="t2", username="tt2")
+            u2.password_hash = "t2"
+
             db.session.add_all([u1, u2])
             db.session.commit()
 
@@ -44,8 +48,11 @@ class TestApp:
             User.query.delete()
             db.session.commit()
 
-            u1 = User(name="t1")
-            u2 = User(name="t2")
+            u1 = User(first_name="t1", last_name="t2", username="tt1")
+            u1.password_hash = "t1"
+            u2 = User(first_name="t2", last_name="t2", username="tt2")
+            u2.password_hash = "t2"
+
             db.session.add_all([u1, u2])
             db.session.commit()
 
@@ -61,6 +68,31 @@ class TestApp:
             assert response.json == friend_request.to_dict()
             assert friend_request.status == "accepted"
             assert not friend_request.notification
+
+    # def test_check_login(self):
+    #     '''When logged in, it will create a session cookie with the user's id'''
+    #     with app.app_context():
+    #         Friendship.query.delete()
+    #         Notification.query.delete()
+    #         User.query.delete()
+            
+    #         u1 = User(first_name="t1", last_name="t2", username="tt1")
+    #         u1.password_hash = "t1"
+    #         db.session.add(u1)
+    #         db.session.commit()
+
+    #         response = app.test_client().post('/login',
+    #         json={
+    #             "username": "tt1",
+    #             "password": "t1"
+    #         })
+
+    #         assert response.status_code == 200
+
+
+
+
+
             
             
 

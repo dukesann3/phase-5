@@ -4,6 +4,7 @@ from flask import jsonify, request, make_response, session
 from flask_restful import Resource
 from models import User, Friendship, Notification
 from configs import api, app, db
+import ipdb
 
 #============ For Testing Purposes Only!!! ==================================#
 class Friendships(Resource):
@@ -16,17 +17,18 @@ class Login(Resource):
     def post(self):
         response = request.get_json()
         potential_user = User.query.filter(User.username == response["username"]).first()
-
-        if potential_user.authenticate(response["password"]):
-            session["user_id"] = potential_user.id
-            return make_response(potential_user.to_dict(), 200)
         
-        return make_response({"message": "Error, could not find username or password in database"}, 404)
+        try:
+            if potential_user.authenticate(response["password"]):
+                session["user_id"] = potential_user.id
+                return make_response(potential_user.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, could not find username or password in database"}, 404)
     
 class Logout(Resource):
     def delete(self):
         session["user_id"] = None
-        return make_response("message": "Logout successful", 204)
+        return make_response({"message": "Logout successful"}, 204)
     
 class CheckSession(Resource):
     def get(self):

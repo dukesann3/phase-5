@@ -5,8 +5,9 @@ import Login from "./components/Login";
 import Message from "./components/Message";
 import PostPage from "./components/Postpage";
 import UserProfilePage from "./components/UserProfilePage";
+import Welcome from "./components/Welcome";
 
-import Tester from "./components/Tester";
+// import Tester from "./components/Tester";
 
 const routes = [
     {
@@ -15,7 +16,11 @@ const routes = [
         errorElement: <ErrorPage />,
         children: [
             {
-                path: '/makeforward slash after testing redux',
+                path: '/',
+                element: <Welcome />
+            },
+            {
+                path: '/login',
                 element: <Login />
             },
             {
@@ -34,10 +39,10 @@ const routes = [
                 path: '/profile/:userid',
                 element: <UserProfilePage />
             },
-            {
-                path: '/',
-                element: <Tester />
-            }
+            // {
+            //     path: '/',
+            //     element: <Tester />
+            // }
         ]   
     }
 ]

@@ -5,6 +5,8 @@ from flask_restful import Resource
 from models import User, Friendship, Notification
 from configs import api, app, db
 import ipdb
+import urllib.request
+import os
 
 #============ For Testing Purposes Only!!! ==================================#
 class Friendships(Resource):
@@ -47,12 +49,14 @@ class Users(Resource):
         response = request.get_json()
         first_name = response["first_name"]
         last_name = response["last_name"]
-        username = response["last_name"]
+        username = response["username"]
+        image_src = response["image_src"]
 
         try:
             new_user = User(first_name=first_name,
                             last_name=last_name,
-                            username=username)
+                            username=username,
+                            image_src=image_src)
             new_user.password_hash = response["password"]
 
             db.session.add(new_user)
@@ -107,6 +111,32 @@ class FriendRequest(Resource):
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         
+    
+class TestApp(Resource):
+    def post(self):
+        response = request.get_json()
+        image_src = response["image_src"]
+
+        try:
+            # new_user = User(first_name=first_name,
+            #                 last_name=last_name,
+            #                 username=username,
+            #                 image_src=image_src)
+            # new_user.password_hash = response["password"]
+
+            # db.session.add(new_user)
+            # db.session.commit()
+            resp = urllib.request.urlopen(image_src)
+            os.mkdir("./images/user_1")
+            os.mkdir("./images/user_1/user_profile_picture")
+            os.mkdir("./images/user_1/user_post_pictures")
+            with open('./images/user_1/user_profile_picture/test.jpg', 'wb') as f:
+                f.write(resp.file.read())
+
+            return make_response({"message": "This is for testing purposes only"}, 200)
+        except:
+            return make_response({"message": "Error, new user could not be made"}, 404)
+        
 
     
 api.add_resource(Users, "/users")
@@ -117,6 +147,7 @@ api.add_resource(Login, "/login")
 api.add_resource(Logout, "/logout")
 #should run this whenever the user first lands, so use useEffect
 api.add_resource(CheckSession, "/checksession")
+api.add_resource(TestApp, "/testing")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

@@ -5,7 +5,6 @@ export function Navbar(){
 
     const dispatch = useDispatch()
     const loggedInUser = useSelector((store) => store.loggedInUser.value)
-    console.log(loggedInUser)
 
     return(
         <>

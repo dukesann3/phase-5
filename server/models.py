@@ -107,6 +107,7 @@ class User(db.Model, SerializerMixin):
     last_name = db.Column(db.String, nullable=False)
     username = db.Column(db.Integer, nullable=False, unique=True)
     _password_hash = db.Column(db.String, nullable=False)
+    _image_src = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
 
@@ -130,6 +131,16 @@ class User(db.Model, SerializerMixin):
         password_hash = bcrypt.generate_password_hash(
             password.encode('utf-8'))
         self._password_hash = password_hash.decode('utf-8')
+
+    @hybrid_property
+    def image_src(self):
+        return self._image_src
+    
+    @image_src.setter
+    def image_src(self, image_src):
+        if not isinstance(image_src, str):
+            raise TypeError("Image src must be a string. In other words, image URI.")
+        self._image_src = image_src
 
     def authenticate(self, password):
         return bcrypt.check_password_hash(

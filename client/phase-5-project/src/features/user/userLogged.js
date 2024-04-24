@@ -4,20 +4,38 @@ import { redirect } from 'react-router-dom'
 export const loggedInUserSlice = createSlice({
     name: 'loggedInUser',
     initialState: {
-        value: {}
+        value: {},
+        loginStatus: {
+            isLoggedIn: false,
+            toggle: "pending"
+        }
     },
     reducers: {
         loginSucceeded: (state, action) => {
             state.value = action.payload
+            state.loginStatus = {
+                isLoggedIn: true,
+                toggle: "succeeded"
+            }
         },
-        loginPending: () => {
-            // return {message: "Fetch status is pending"}
+        loginPending: (state) => {
+            state.loginStatus = {
+                isLoggedIn: false, 
+                toggle: "pending"
+            }
         },
-        loginFailed: () => {
-            // return {message: "Error, could not log in user"}
+        loginFailed: (state) => {
+            state.loginStatus = {
+                isLoggedIn: false,
+                toggle: "failed"
+            }
         },
         logoutSucceeded: (state) => {
             state.value = {}
+            state.loginStatus = {
+                isLoggedIn: false,
+                toggle: "pending"
+            }
         },
         logoutPending: () => {
             // return {message: "Logout status is pending"}
@@ -45,7 +63,10 @@ export function fetchUser(value){
         }).then((r) => {
             dispatch(loginSucceeded(r))
             redirect("/")
-        }).catch((err) => console.log(err))
+        }).catch((err) => {
+            dispatch(loginFailed())
+            console.log(err)
+        })
     }
 }
 

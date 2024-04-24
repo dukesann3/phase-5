@@ -1,13 +1,13 @@
 //no need to use redux for login screen
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
-import { useDispatch } from 'react-redux' 
+import { useDispatch, useSelector } from 'react-redux' 
 import { fetchUser } from '../features/user/userLogged'
-
 
 function Login(){
 
     const dispatch = useDispatch()
+    const loggedInUser = useSelector((store) => store.loggedInUser)
 
     const formik = useFormik({
         initialValues: {
@@ -18,8 +18,11 @@ function Login(){
             username: Yup.string().required('*required'),
             password: Yup.string().required("*required")
         }),
-        onSubmit: (value) => {dispatch(fetchUser(value))}
+        onSubmit: (value) => {
+            dispatch(fetchUser(value))
+        }
     })
+
     return(
         <>
             <form onSubmit={formik.handleSubmit}>
@@ -31,6 +34,7 @@ function Login(){
                 onChange={formik.handleChange}
                 value={formik.values.username}
                 />
+                <div>{formik.errors.username}</div>
 
                 <input 
                 type="password"
@@ -39,9 +43,14 @@ function Login(){
                 onChange={formik.handleChange}
                 value={formik.values.password}
                 />
+                <div>{formik.errors.password}</div>
 
                 <input type='submit' />
             </form>
+            <p className="warning-message">
+                {loggedInUser.loginStatus.toggle === "failed" ? 
+                "incorrect username or password" : ""}
+            </p>  
         </>
     )
 }

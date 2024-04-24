@@ -6,6 +6,7 @@ import Message from "./components/Message";
 import PostPage from "./components/Postpage";
 import UserProfilePage from "./components/UserProfilePage";
 import Welcome from "./components/Welcome";
+import UserTest from "./components/UserTest";
 
 // import Tester from "./components/Tester";
 
@@ -15,9 +16,13 @@ const routes = [
         element: <App />,
         errorElement: <ErrorPage />,
         children: [
+            // {
+            //     path: '/',
+            //     element: <Welcome />
+            // },
             {
                 path: '/',
-                element: <Welcome />
+                element: <UserTest />
             },
             {
                 path: '/login',

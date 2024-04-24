@@ -34,11 +34,14 @@ class Logout(Resource):
     
 class CheckSession(Resource):
     def get(self):
-        user = User.query.filter(User.id == session["user_id"]).first()
-        if user:
-            return make_response(user.to_dict(), 200)
-        else:
-            return make_response({"message": "Error, could not find user data in session"}, 404)
+        try:
+            user = User.query.filter(User.id == session["user_id"]).first()
+            if user:
+                return make_response(user.to_dict(), 200)
+            else:
+                return make_response({"message": "Error, could not find user data in session"}, 404)
+        except:
+            return make_response({"message": "Network Error"}, 500)
 
 class Users(Resource):
     def get(self):
@@ -50,17 +53,31 @@ class Users(Resource):
         first_name = response["first_name"]
         last_name = response["last_name"]
         username = response["username"]
-        image_src = response["image_src"]
+        image_uri = response["image_uri"]
 
         try:
             new_user = User(first_name=first_name,
                             last_name=last_name,
-                            username=username,
-                            image_src=image_src)
+                            username=username)
+            
             new_user.password_hash = response["password"]
 
             db.session.add(new_user)
             db.session.commit()
+
+            os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder")
+            os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder")
+            os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_posts_folder")
+
+            if image_uri:
+                resp = urllib.request.urlopen(image_uri)
+                profile_picture_path = f'../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder/{new_user.id}_profile.jpg'
+                with open(profile_picture_path, 'wb') as f:
+                    f.write(resp.file.read())
+                if os.path.exists(profile_picture_path):
+                    new_user.image_src = f'./images/{new_user.id}_folder/{new_user.id}_profile_picture_folder/{new_user.id}_profile.jpg'
+                    db.session.commit()
+
             return make_response(new_user.to_dict(), 200)
         except:
             return make_response({"message": "Error, new user could not be made"}, 404)

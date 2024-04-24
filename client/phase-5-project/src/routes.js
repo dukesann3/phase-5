@@ -7,6 +7,7 @@ import PostPage from "./components/Postpage";
 import UserProfilePage from "./components/UserProfilePage";
 import Welcome from "./components/Welcome";
 import UserTest from "./components/UserTest";
+import CreateAccount from "./components/CreateAccount";
 
 // import Tester from "./components/Tester";
 
@@ -16,14 +17,14 @@ const routes = [
         element: <App />,
         errorElement: <ErrorPage />,
         children: [
-            // {
-            //     path: '/',
-            //     element: <Welcome />
-            // },
             {
                 path: '/',
-                element: <UserTest />
+                element: <Welcome />
             },
+            // {
+            //     path: '/',
+            //     element: <UserTest />
+            // },
             {
                 path: '/login',
                 element: <Login />
@@ -47,7 +48,11 @@ const routes = [
             // {
             //     path: '/',
             //     element: <Tester />
-            // }
+            // },
+            {
+                path: '/create_an_account',
+                element: <CreateAccount />
+            }
         ]   
     }
 ]

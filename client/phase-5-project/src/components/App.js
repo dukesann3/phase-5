@@ -18,7 +18,7 @@ function App() {
     <>
       <Navbar />
       <h1>This is App</h1>
-      {/* {
+      {
         Object.keys(loggedInUser.value).length > 0 ? 
         <div>
           <h5>This is Outlet</h5>
@@ -28,7 +28,7 @@ function App() {
         </div>
         :
         <Login />
-      } */}
+      }
       <Outlet />
       <h1>This is Footer</h1>
     </>

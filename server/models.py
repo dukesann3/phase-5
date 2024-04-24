@@ -127,6 +127,8 @@ class User(db.Model, SerializerMixin):
 
     @password_hash.setter
     def password_hash(self, password):
+        if len(password) < 5:
+            raise ValueError("Password must be at least 5 letters")
         # utf-8 encoding and decoding is required in python 3
         password_hash = bcrypt.generate_password_hash(
             password.encode('utf-8'))

@@ -3,6 +3,7 @@ import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { useDispatch, useSelector } from 'react-redux' 
 import { fetchUser } from '../features/user/userLogged'
+import { NavLink } from 'react-router-dom'
 
 function Login(){
 
@@ -50,7 +51,8 @@ function Login(){
             <p className="warning-message">
                 {loggedInUser.loginStatus.toggle === "failed" ? 
                 "incorrect username or password" : ""}
-            </p>  
+            </p>
+            <NavLink to="/create_an_account">Create an Account</NavLink>  
         </>
     )
 }

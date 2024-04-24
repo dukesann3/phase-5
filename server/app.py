@@ -75,7 +75,7 @@ class Users(Resource):
                 with open(profile_picture_path, 'wb') as f:
                     f.write(resp.file.read())
                 if os.path.exists(profile_picture_path):
-                    new_user.image_src = f'./images/{new_user.id}_folder/{new_user.id}_profile_picture_folder/{new_user.id}_profile.jpg'
+                    new_user.image_src = f'/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder/{new_user.id}_profile.jpg'
                     db.session.commit()
 
             return make_response(new_user.to_dict(), 200)

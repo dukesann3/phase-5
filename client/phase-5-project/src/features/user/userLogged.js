@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { redirect } from 'react-router-dom'
 
 export const loggedInUserSlice = createSlice({
     name: 'loggedInUser',
@@ -62,7 +61,6 @@ export function fetchUser(value){
             throw new Error("Network Error")
         }).then((r) => {
             dispatch(loginSucceeded(r))
-            redirect("/")
         }).catch((err) => {
             dispatch(loginFailed())
             console.log(err)
@@ -78,7 +76,8 @@ export function logoutUser(){
             headers: {
                 'Content-Type': 'application/json'
             }
-        }).then((r)=>{
+        })
+        .then((r)=>{
             if(r.ok)dispatch(logoutSucceeded())
             throw new Error("Network failure")
         })

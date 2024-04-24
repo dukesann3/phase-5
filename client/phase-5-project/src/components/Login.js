@@ -4,11 +4,14 @@ import * as Yup from 'yup'
 import { useDispatch, useSelector } from 'react-redux' 
 import { fetchUser } from '../features/user/userLogged'
 import { NavLink } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 function Login(){
 
     const dispatch = useDispatch()
     const loggedInUser = useSelector((store) => store.loggedInUser)
+    const navigate = useNavigate()
+    //use this to go to post list
 
     const formik = useFormik({
         initialValues: {

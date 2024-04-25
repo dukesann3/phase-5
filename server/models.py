@@ -10,8 +10,8 @@ class Post(db.Model, SerializerMixin):
     __tablename__ = "posts"
 
     id = db.Column(db.Integer, primary_key=True)
-    # _image_src = db.Column(db.String, nullable=False)
-    # location = db.Column(db.String)
+    _image_src = db.Column(db.String, nullable=False)
+    location = db.Column(db.String)
     caption = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
@@ -20,6 +20,17 @@ class Post(db.Model, SerializerMixin):
     user = db.relationship("User", back_populates="posts")
     comments = db.relationship("Comment", back_populates="post")
     post_likes = db.relationship("PostLike", back_populates="post")
+
+    @hybrid_property
+    def image_src(self):
+        return self._image_src
+    
+    @image_src.setter
+    def image_src(self, image_src):
+        if not isinstance(image_src, str):
+            raise TypeError("Image URI must be in string format")
+        
+        self._image_src = image_src
 
     #add hybrid properties later. Focus on linking database tables together for now
     #and unhide image_src once everything is tested correctly

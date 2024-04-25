@@ -6,6 +6,74 @@ from datetime import datetime
 from configs import bcrypt, db
 import ipdb
 
+class Post(db.Model, SerializerMixin):
+    __tablename__ = "posts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    # _image_src = db.Column(db.String, nullable=False)
+    # location = db.Column(db.String)
+    caption = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+
+    user = db.relationship("User", back_populates="posts")
+    comments = db.relationship("Comment", back_populates="post")
+    post_likes = db.relationship("PostLike", back_populates="post")
+
+    #add hybrid properties later. Focus on linking database tables together for now
+    #and unhide image_src once everything is tested correctly
+
+    serialize_rules = ("-user","-post_likes")
+
+class PostLike(db.Model, SerializerMixin):
+    __tablename__ = "postlikes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    isLiked = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+
+    user = db.relationship("User", back_populates="post_like")
+    post = db.relationship("Post", back_populates="post_likes")
+
+    serialize_rules = ("user","post")
+
+class Comment(db.Model, SerializerMixin):
+    __tablename__ = "comments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+
+    user = db.relationship("User", back_populates="comments")
+    post = db.relationship("Post", back_populates="comments")
+    comment_likes = db.relationship("CommentLike", back_populates="comment")
+
+    serialize_rules = ("-post","-user", "-comment_likes")
+
+class CommentLike(db.Model, SerializerMixin):
+    __tablename__ = "commentlikes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    isLiked = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    comment_id = db.Column(db.Integer, db.ForeignKey("comments.id"), nullable=False)
+
+    user = db.relationship("User", back_populates="comment_like")
+    comment = db.relationship("Comment", back_populates="comment_likes")
+
+    serialize_rules = ("-user", "-comment")
+
+
+
 class Friendship(db.Model, SerializerMixin):
     __tablename__ = "friendships"
     __table_args__ = (
@@ -121,6 +189,11 @@ class User(db.Model, SerializerMixin):
         primaryjoin="(User.id == Notification.notification_reciever_id)",
     )
 
+    posts = db.relationship("Post", back_populates="user")
+    comments = db.relationship("Comment", back_populates="user")
+    post_like = db.relationship("PostLike", back_populates="user")
+    comment_like = db.relationship("CommentLike", back_populates="user")
+
     @hybrid_property
     def password_hash(self):
         return self._password_hash
@@ -198,11 +271,15 @@ class User(db.Model, SerializerMixin):
             db.session.delete(n)
             db.session.commit()
             
-    serialize_rules = ("-friendships.reciever","-friendships.sender", "-notifications.notification_sender"
-                       , "-notifications.notification_reciever", "-notifications.friendship", "-friendships.notification")
+    # serialize_rules = ("-friendships.reciever","-friendships.sender", "-notifications.notification_sender"
+    #                    , "-notifications.notification_reciever", "-notifications.friendship", "-friendships.notification"
+    #                    , "-posts.user", "-posts.comments","-comments.user","-comments.post")
+
+    serialize_rules = ("-friendships", "-notifications", "-comments", "-posts", "-_password_hash"
+                        "-post_like", "-comment_like")
 
     def __repr__(self):
-        return f'username: {self.name}, friendships: {self.friendships}'
+        return f'username: {self.first_name}, friendships: {self.friendships}'
     
 
     

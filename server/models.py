@@ -5,12 +5,14 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from datetime import datetime
 from configs import bcrypt, db
 import ipdb
+import urllib.request
+import os
 
 class Post(db.Model, SerializerMixin):
     __tablename__ = "posts"
 
     id = db.Column(db.Integer, primary_key=True)
-    _image_src = db.Column(db.String, nullable=False)
+    _image_src = db.Column(db.String)
     location = db.Column(db.String)
     caption = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
@@ -32,8 +34,6 @@ class Post(db.Model, SerializerMixin):
         
         self._image_src = image_src
 
-    #add hybrid properties later. Focus on linking database tables together for now
-    #and unhide image_src once everything is tested correctly
 
     serialize_rules = ("-user","-post_likes")
 
@@ -281,6 +281,7 @@ class User(db.Model, SerializerMixin):
             db.session.delete(f)
             db.session.delete(n)
             db.session.commit()
+
             
     # serialize_rules = ("-friendships.reciever","-friendships.sender", "-notifications.notification_sender"
     #                    , "-notifications.notification_reciever", "-notifications.friendship", "-friendships.notification"

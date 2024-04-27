@@ -2,11 +2,17 @@
 
 from flask import jsonify, request, make_response, session
 from flask_restful import Resource
-from models import User, Friendship, Notification
+from models import User, Friendship, Notification, Post, Comment, PostLike, CommentLike
 from configs import api, app, db
 import ipdb
 import urllib.request
 import os
+
+# @app.before_request
+# def check_if_logged_in():
+#     if not session['user_id'] and request.endpoint != 'check_session' :
+#         return {'error': 'Unauthorized'}, 401
+
 
 #============ For Testing Purposes Only!!! ==================================#
 class Friendships(Resource):
@@ -19,17 +25,24 @@ class Login(Resource):
     def post(self):
         response = request.get_json()
         potential_user = User.query.filter(User.username == response["username"]).first()
+        print(potential_user)
         
         try:
             if potential_user.authenticate(response["password"]):
+
                 session["user_id"] = potential_user.id
+                session["n_of_users"] = 0
+
                 return make_response(potential_user.to_dict(), 200)
         except:
             return make_response({"message": "Error, could not find username or password in database"}, 404)
     
 class Logout(Resource):
     def delete(self):
+
         session["user_id"] = None
+        session["n_of_users"] = 0
+
         return make_response({"message": "Logout successful"}, 204)
     
 class CheckSession(Resource):
@@ -45,9 +58,25 @@ class CheckSession(Resource):
 
 class Users(Resource):
     def get(self):
-        users = [user.to_dict() for user in User.query.all()]
-        return make_response(users, 200)
+        n_of_users_per_click = 3
 
+        try:
+            if len(User.query.all()) > session["n_of_users"]:
+                session["n_of_users"] = session["n_of_users"] + n_of_users_per_click
+                print("1")
+            elif len(User.query.all()) <= session["n_of_users"]:
+                print("2")
+                raise ValueError("Exceeded the amount of user requests")
+            
+            n_of_users = session["n_of_users"]
+            users = [user.to_dict() for user in User.query.limit(n_of_users).all()]
+            return make_response(users, 200)
+
+        except ValueError as error:
+            return make_response({"message": f"{error}"}, 404)
+        except:
+            return make_response({"message": "Error, could not fetch users"}, 404)
+        
     def post(self):
         response = request.get_json()
         first_name = response["first_name"]
@@ -128,32 +157,65 @@ class FriendRequest(Resource):
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         
-    
-class TestApp(Resource):
+
+        
+class Posts(Resource):
+    def get(self):
+        try:
+            user_id = session["user_id"]
+            user = User.query.filter(User.id == user_id).first()
+            friends = user.friends
+            post_list = []
+
+            for friend in friends:
+                for post in friend.posts:
+                    post_list.append(post)
+            
+            sorted_post_list = sorted(post_list, key=lambda post: post["updated_at"])
+            sorted_post_list_to_dict = [post.to_dict() for post in sorted_post_list]
+
+            return make_response(sorted_post_list_to_dict, 200)
+        
+        except:
+            return make_response({"message": "Error, could not retrieve all posts"}, 404)
+        
+
     def post(self):
         response = request.get_json()
-        image_src = response["image_src"]
-
+    
         try:
-            # new_user = User(first_name=first_name,
-            #                 last_name=last_name,
-            #                 username=username,
-            #                 image_src=image_src)
-            # new_user.password_hash = response["password"]
 
-            # db.session.add(new_user)
-            # db.session.commit()
-            resp = urllib.request.urlopen(image_src)
-            os.mkdir("./images/user_1")
-            os.mkdir("./images/user_1/user_profile_picture")
-            os.mkdir("./images/user_1/user_post_pictures")
-            with open('./images/user_1/user_profile_picture/test.jpg', 'wb') as f:
-                f.write(resp.file.read())
+            user_id = session["user_id"]
+            image_uri = response["image_uri"]
 
-            return make_response({"message": "This is for testing purposes only"}, 200)
+            new_post = Post(
+                location=response["location"],
+                caption=response["caption"],
+                user_id=user_id
+            )
+
+            db.session.add(new_post)
+            db.session.commit()
+
+            if image_uri:
+                resp = urllib.request.urlopen(image_uri)
+                new_post_path = f'../client/phase-5-project/public/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{new_post.id}.jpg'
+                with open(new_post_path, 'wb') as f:
+                    f.write(resp.file.read())
+                if os.path.exists(new_post_path):
+                    print("path?")
+                    new_post.image_src = f'/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{new_post.id}.jpg'
+                    db.session.commit()
+
+            return make_response(new_post.to_dict(), 200)
         except:
-            return make_response({"message": "Error, new user could not be made"}, 404)
+            return make_response({"message": "Error, new post could not be created"}, 404)
         
+class onUserListRefresh(Resource):
+    def get(self):
+
+        session["n_of_users"] = 0
+        return make_response({"message": "Session cookie has been successfully changed"}, 200)
 
     
 api.add_resource(Users, "/users")
@@ -164,7 +226,8 @@ api.add_resource(Login, "/login")
 api.add_resource(Logout, "/logout")
 #should run this whenever the user first lands, so use useEffect
 api.add_resource(CheckSession, "/checksession")
-api.add_resource(TestApp, "/testing")
+api.add_resource(Posts, "/posts", endpoint="check_session")
+api.add_resource(onUserListRefresh, "/onRefresh")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

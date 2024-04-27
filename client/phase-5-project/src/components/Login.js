@@ -5,13 +5,17 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchUser } from '../features/user/userLogged'
 import { NavLink } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 
 function Login(){
 
     const dispatch = useDispatch()
     const loggedInUser = useSelector((store) => store.loggedInUser)
     const navigate = useNavigate()
-    //use this to go to post list
+
+    useEffect(()=>{
+        if(loggedInUser.value.id) navigate(`/home/${loggedInUser.value.id}`)
+    },[loggedInUser])
 
     const formik = useFormik({
         initialValues: {

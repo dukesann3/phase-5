@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { userLogout } from './userList'
 
 export const loggedInUserSlice = createSlice({
     name: 'loggedInUser',
@@ -71,17 +72,22 @@ export function fetchUser(value){
 export function logoutUser(){
     return async (dispatch, getState) => {
         dispatch(logoutPending())
-        await fetch('/logout', {
+        fetch('/logout', {
             method: "DELETE",
             headers: {
                 'Content-Type': 'application/json'
             }
         })
         .then((r)=>{
-            if(r.ok)dispatch(logoutSucceeded())
+            if(r.ok) return
             throw new Error("Network failure")
         })
+        .then(() => {
+            dispatch(logoutSucceeded())
+            dispatch(userLogout())
+        })
         .catch((err) => {
+            console.log(err)
             dispatch(logoutFailed())
         })
     }

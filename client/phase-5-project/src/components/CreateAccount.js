@@ -4,7 +4,7 @@ import * as Yup from 'yup'
 export default function CreateAccount(){
 
     function onCreateAccount(value){
-        fetch("/users", {
+        fetch("/create_an_account", {
             method: "POST",
             headers: {
                 'Content-Type': 'application/json'

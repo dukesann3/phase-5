@@ -30,11 +30,11 @@ const routes = [
                 element: <Login />
             },
             {
-                path: '/home/:userid',
+                path: '/home/:user_id',
                 element: <Home />
             },
             {
-                path: '/message/:userid',
+                path: '/message/:user_id',
                 element: <Message />
             },
             {

@@ -218,21 +218,15 @@ class CreateAnAccount(Resource):
         image_uri = response["image_uri"]
 
         try:
-            print("here?")
             new_user = User(first_name=first_name,
                             last_name=last_name,
                             username=username)
             new_user.password_hash = response["password"]
-            print("nn")
             db.session.add(new_user)
-            print("ff")
-            print(first_name, last_name, username, image_uri)
             db.session.commit()
-            print("yeah?")
             os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder")
             os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder")
             os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_posts_folder")
-            print("huh?")
             if image_uri:
                 resp = urllib.request.urlopen(image_uri)
                 profile_picture_path = f'../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder/{new_user.id}_profile.jpg'
@@ -245,6 +239,25 @@ class CreateAnAccount(Resource):
             return make_response(new_user.to_dict(), 200)
         except:
             return make_response({"message": "Error, new user could not be made"}, 404)
+        
+class TestCreateAnAccount(Resource):
+    def post(self):
+        response = request.get_json()
+        first_name = response["first_name"]
+        last_name = response["last_name"]
+        username = response["username"]
+        # image_uri = response["image_uri"]
+
+        try:
+            new_user = User(first_name=first_name,
+                            last_name=last_name,
+                            username=username)
+            new_user.password_hash = response["password"]
+            db.session.add(new_user)
+            db.session.commit()
+            return make_response(new_user.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, new user could not be made"}, 403)
         
 class onUserListRefresh(Resource):
     def delete(self):
@@ -259,12 +272,16 @@ api.add_resource(SpecificUsers, "/users/<int:id>")
 api.add_resource(FriendRequest, "/friendships/send_request")
 api.add_resource(Login, "/login")
 api.add_resource(Logout, "/logout")
+
 #should run this whenever the user first lands, so use useEffect
 api.add_resource(CheckSession, "/checksession")
 api.add_resource(Posts, "/posts", endpoint="check_session")
 api.add_resource(onUserListRefresh, "/onrefresh")
 api.add_resource(UserTest, '/all_users')
 api.add_resource(CreateAnAccount, '/create_an_account')
+
+#for testing purposes only
+api.add_resource(TestCreateAnAccount, "/test_create_an_account")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

@@ -262,15 +262,12 @@ class User(db.Model, SerializerMixin):
         if not response in ["accepted", "rejected"]:
             raise ValueError("Response must be either accepted or rejected")
         
-
         f = Friendship.query.filter(Friendship.id == friend_request_id).first()
         n = Notification.query.filter(Notification.notification_sender_id == f.sender_id and Notification.notification_reciever_id == self.id and Notification.notification_type == "Friend Request").first()
-        print(n)
         #must delete opposite friend request it is a two way friend request before accepting or rejecting
         oppo_f = Friendship.query.filter(Friendship.sender_id == f.reciever_id and Friendship.reciever_id == f.sender_id).first()
-        print("here")
         oppo_n = Notification.query.filter(Notification.notification_sender_id == self.id and Notification.notification_reciever_id == f.sender_id and Notification.notification_type == "Friend Request").first()
-        print("where")
+
         if oppo_f:
             if not oppo_f.status == response:
                 db.session.delete(oppo_n)

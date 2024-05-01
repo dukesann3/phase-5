@@ -15,15 +15,37 @@ import os
 
 
 #============ For Testing Purposes Only!!! ==================================#
-class Friendships(Resource):
+class FriendshipTest(Resource):
     def get(self):
         friendships = [friendship.to_dict() for friendship in Friendship.query.all()]
         return make_response(friendships, 200)
+    
+class FriendshipTestSpecifics(Resource):
+    def get(self, f_id):
+        try:
+            friendship = Friendship.query.filter(Friendship.id == f_id).first().to_dict()
+            return make_response(friendship, 200)
+        except:
+            return make_response({"message": "Error, friend request could not be found"}, 404)
+        
+class NotificationTestSpecifics(Resource):
+    def get(self, n_id):
+        try:
+            notification = Notification.query.filter(Notification.id == n_id).first().to_dict()
+            return make_response(notification, 200)
+        except:
+            return make_response({"message": "Error, notification could not be found"}, 404)
     
 class UserTest(Resource):
     def get(self):
         all_users = [user.to_dict() for user in User.query.all()]
         return make_response(all_users, 200)
+    
+class UserTestSpecifics(Resource):
+    def get(self, user_id):
+        user = User.query.filter(User.id == user_id).first()
+        return make_response(user.to_dict(), 200)
+
 #============ For Testing Purposes Only!!! ==================================#
 
 class Login(Resource):
@@ -128,18 +150,10 @@ class FriendRequest(Resource):
         response = request.get_json()
         friend_request_id = int(response["friend_request_id"])
         friend_request_response = response["friend_request_response"]
-        print("where?")
         try:
-            print("hh")
             f = Friendship.query.filter(Friendship.id == friend_request_id).first()
-            print("h2")
             friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
-            print("h3")
-            print(friend_request_reciever.username)
-            print(friend_request_id)
-            print(friend_request_response)
             friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
-            print("am I here?")
             if friend_request_response == "accepted":
                 updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
                 return make_response(updated_friend_request, 200)
@@ -267,7 +281,6 @@ class onUserListRefresh(Resource):
 
     
 api.add_resource(Users, "/users/<int:user_id>")
-api.add_resource(Friendships, "/friendships")
 api.add_resource(SpecificUsers, "/users/<int:id>")
 api.add_resource(FriendRequest, "/friendships/send_request")
 api.add_resource(Login, "/login")
@@ -282,6 +295,10 @@ api.add_resource(CreateAnAccount, '/create_an_account')
 
 #for testing purposes only
 api.add_resource(TestCreateAnAccount, "/test_create_an_account")
+api.add_resource(UserTestSpecifics, "/user_test/<int:user_id>")
+api.add_resource(FriendshipTest, "/friendships")
+api.add_resource(FriendshipTestSpecifics, "/friendship_test/<int:f_id>")
+api.add_resource(NotificationTestSpecifics, "/notification_test/<int:n_id>")
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { userLogout } from './userList'
 
-export const loggedInUserSlice = createSlice({
+export const userSlice = createSlice({
     name: 'loggedInUser',
     initialState: {
         value: {},
@@ -107,5 +107,5 @@ export function checkSession(){
     }
 }
 
-export const { loginPending, loginFailed, loginSucceeded, logoutSucceeded, logoutPending, logoutFailed } = loggedInUserSlice.actions
-export default loggedInUserSlice.reducer
+export const { loginPending, loginFailed, loginSucceeded, logoutSucceeded, logoutPending, logoutFailed } = userSlice.actions
+export default userSlice.reducer

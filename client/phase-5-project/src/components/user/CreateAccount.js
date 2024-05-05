@@ -1,8 +1,12 @@
 import { useFormik } from "formik"
 import * as Yup from 'yup'
+import { useNavigate } from "react-router-dom"
 
 export default function CreateAccount(){
 
+    const navigate = useNavigate()
+
+    //create react component that leads to successful creation page
     function onCreateAccount(value){
         fetch("/create_an_account", {
             method: "POST",
@@ -16,7 +20,7 @@ export default function CreateAccount(){
             else if(r.status === 404) throw new Error("User cannot be created")
             throw new Error("Network Error")
         })
-        .then((r) => console.log(r))
+        .then(() => navigate("/"))
         .catch((error) => console.log(error))
     }
 

@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { checkSession } from "../features/user/userLogged";
+import { checkSession } from "../features/user-slice/user";
 import Login from "./Login";
 
 function App() {

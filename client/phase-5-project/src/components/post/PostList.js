@@ -1,15 +1,16 @@
 import { useSelector, useDispatch } from "react-redux"
 import CreatePost from "./CreatePost"
 import { useEffect } from "react"
-import { fetchAllPosts } from "../features/post/allPosts"
+import { getPosts } from "../../features/post-slice/allPosts"
+import PostBlock from "./PostBlock"
 
-export default function Postlist(){
+export default function PostList(){
 
     const posts = useSelector((store) => store.allPost.value)
     const dispatch = useDispatch()
 
     useEffect(()=>{
-        dispatch(fetchAllPosts())  
+        dispatch(getPosts())  
     },[])
 
     console.log(posts)
@@ -21,7 +22,7 @@ export default function Postlist(){
             {posts ? 
             <>
                 {posts.map((post) => {
-                    return <div>{post.caption}</div>
+                    return <PostBlock post={post}/>
                 })}
             </>
             :

@@ -15,6 +15,7 @@ import os
 
 
 #============ For Testing Purposes Only!!! ==================================#
+
 class FriendshipTest(Resource):
     def get(self):
         friendships = [friendship.to_dict() for friendship in Friendship.query.all()]
@@ -45,6 +46,11 @@ class UserTestSpecifics(Resource):
     def get(self, user_id):
         user = User.query.filter(User.id == user_id).first()
         return make_response(user.to_dict(), 200)
+    
+class PostTest(Resource):
+    def get(self):
+        all_posts = [post.to_dict() for post in Post.query.all()]
+        return make_response(all_posts, 200)
 
 #============ For Testing Purposes Only!!! ==================================#
 
@@ -174,14 +180,14 @@ class Posts(Resource):
         try:
             user_id = session["user_id"]
             user = User.query.filter(User.id == user_id).first()
-            friends = user.friends
+            user_and_friends = user.friends + [user]
             post_list = []
 
-            for friend in friends:
-                for post in friend.posts:
+            for people in user_and_friends:
+                for post in people.posts:
                     post_list.append(post)
             
-            sorted_post_list = sorted(post_list, key=lambda post: post["updated_at"])
+            sorted_post_list = sorted(post_list, key=lambda post: post.updated_at)
             sorted_post_list_to_dict = [post.to_dict() for post in sorted_post_list]
 
             return make_response(sorted_post_list_to_dict, 200)
@@ -214,7 +220,6 @@ class Posts(Resource):
                 with open(new_post_path, 'wb') as f:
                     f.write(resp.file.read())
                 if os.path.exists(new_post_path):
-                    print("path?")
                     new_post.image_src = f'/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{new_post.id}.jpg'
                     db.session.commit()
 
@@ -222,10 +227,44 @@ class Posts(Resource):
         except:
             return make_response({"message": "Error, new post could not be created"}, 404)
         
+class PostEdit(Resource):
+    def delete(self, p_id):
+        try:
+            post_to_delete = Post.query.filter(Post.id == p_id).first()
+            print(post_to_delete.user_id, session["user_id"])
+            if post_to_delete.user_id != session["user_id"]:
+                raise ValueError("user does not have the credentials to edit this post")
+            
+            db.session.delete(post_to_delete)
+            db.session.commit()
+            return make_response({"message": "Post has been succesfully deleted"}, 204)
+        
+        except ValueError as err:
+            return make_response({"message": err}, 402)
+        except:
+            return make_response({"message": "Error, post cannot be found"}, 404)
+        
+    def patch(self, p_id):
+        response = request.get_json()
+
+        try:
+            post_to_patch = Post.query.filter(Post.id == p_id).first()
+            all_attr = post_to_patch.__dict__
+            for attr in all_attr:
+                if response.get(attr):
+                    setattr(post_to_patch, attr, response[attr])
+
+            db.session.commit()
+            return make_response(post_to_patch.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, could not patch post"}, 404)
+
+        
 class CreateAnAccount(Resource):
     def post(self):
         print('createanaccount-post')
         response = request.get_json()
+        
         first_name = response["first_name"]
         last_name = response["last_name"]
         username = response["username"]
@@ -278,27 +317,77 @@ class onUserListRefresh(Resource):
         session['n_of_users'] = 0
 
         return make_response({"message": "Session cookie has been successfully changed"}, 200)
+    
+class Comments(Resource):
+    def post(self):
+        print("comment-post")
+        response = request.get_json()
 
+        try:
+            post_id = response["post_id"]
+            text = response["text"]
+            user_id = session["user_id"]
+
+            new_comment = Comment(post_id=post_id, user_id=user_id, text=text)
+            db.session.add(new_comment)
+            db.session.commit()
+            return make_response(new_comment.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, could not create new comment"}, 404)
+    
+class CommentEdit(Resource):
+    def patch(self, c_id):
+        print("comment-patch")
+        response = request.get_json()
+
+        try:
+            comment_to_patch = Comment.query.filter(Comment.id == c_id).first()
+            all_attr = comment_to_patch.__dict__
+            for attr in all_attr:
+                if response.get(attr):
+                    setattr(comment_to_patch, attr, response[attr])
+
+            db.session.commit()
+            return make_response(comment_to_patch.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, could not patch post"}, 404)
+        
+
+    def delete(self, c_id):
+        try:
+            comment_to_delete = Comment.query.filter(Comment.id == c_id).first()
+            db.session.delete(comment_to_delete)
+            db.session.commit()
+            return make_response({"message": "Comment deleted successfully"}, 204)
+        except:
+            return make_response({"message": "Error, comment could not be deleted"}, 404)
+    
     
 api.add_resource(Users, "/users/<int:user_id>")
 api.add_resource(SpecificUsers, "/users/<int:id>")
+api.add_resource(UserTest, '/all_users')
+api.add_resource(CreateAnAccount, '/create_an_account')
+api.add_resource(onUserListRefresh, "/onrefresh")
 api.add_resource(FriendRequest, "/friendships/send_request")
+
 api.add_resource(Login, "/login")
 api.add_resource(Logout, "/logout")
 
-#should run this whenever the user first lands, so use useEffect
 api.add_resource(CheckSession, "/checksession")
-api.add_resource(Posts, "/posts", endpoint="check_session")
-api.add_resource(onUserListRefresh, "/onrefresh")
-api.add_resource(UserTest, '/all_users')
-api.add_resource(CreateAnAccount, '/create_an_account')
 
-#for testing purposes only
+api.add_resource(Posts, "/posts", endpoint="check_session")
+api.add_resource(PostEdit, "/post/<int:p_id>")
+
+api.add_resource(Comments, '/comment')
+api.add_resource(CommentEdit, '/comment/<int:c_id>')
+
+#for testing purposes only-----------------------------------------------------
 api.add_resource(TestCreateAnAccount, "/test_create_an_account")
 api.add_resource(UserTestSpecifics, "/user_test/<int:user_id>")
 api.add_resource(FriendshipTest, "/friendships")
 api.add_resource(FriendshipTestSpecifics, "/friendship_test/<int:f_id>")
 api.add_resource(NotificationTestSpecifics, "/notification_test/<int:n_id>")
+api.add_resource(PostTest, '/post_test')
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

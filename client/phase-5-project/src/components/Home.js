@@ -1,5 +1,6 @@
-import NotificationList from "./NotificationList";
-import UserList from "./UserList";
+import NotificationList from "./notification/NotificationList";
+import UserList from "./user/UserList";
+import PostList from "./post/PostList";
 
 function Home(){
     return(
@@ -7,6 +8,7 @@ function Home(){
             <span>Home?</span>
             <NotificationList />
             <UserList />
+            <PostList />
         </>
     )
 }

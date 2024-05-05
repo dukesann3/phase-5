@@ -34,8 +34,7 @@ class Post(db.Model, SerializerMixin):
         
         self._image_src = image_src
 
-
-    serialize_rules = ("-user","-post_likes")
+    serialize_rules = ("-post_likes","-user")
 
 class PostLike(db.Model, SerializerMixin):
     __tablename__ = "postlikes"
@@ -50,7 +49,7 @@ class PostLike(db.Model, SerializerMixin):
     user = db.relationship("User", back_populates="post_like")
     post = db.relationship("Post", back_populates="post_likes")
 
-    serialize_rules = ("user","post")
+    serialize_rules = ("-user","-post")
 
 class Comment(db.Model, SerializerMixin):
     __tablename__ = "comments"

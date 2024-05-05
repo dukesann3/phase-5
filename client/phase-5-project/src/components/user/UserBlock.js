@@ -2,11 +2,10 @@ import { useSelector } from "react-redux"
 
 export default function UseBlock({user}){
 
-    const loggedInUser = useSelector((store) => store.loggedInUser.value)
+    const loggedInUser = useSelector((store) => store.user.value)
 
     function sendFriendRequest(e){
         e.preventDefault()
-        console.log("here?")
         fetch('/friendships/send_request', {
             method: "POST",
             headers: {

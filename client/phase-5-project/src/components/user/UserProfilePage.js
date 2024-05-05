@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 function UserProfilePage(){
 
-    const loggedInUser = useSelector((store) => store.loggedInUser)
+    const loggedInUser = useSelector((store) => store.user)
     const userValues = loggedInUser.value
 
     console.log(userValues._image_src)

@@ -5,7 +5,7 @@ from flask import Flask, url_for
 import flask
 import ipdb
 
-class TestApp:
+class TestLogAndFriendRequest:
 
     def test_create_account(self):
         '''Create account works'''

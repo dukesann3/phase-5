@@ -17,7 +17,6 @@ export const userListSlice = createSlice({
             state.errorMessage = ""
         },
         fetchFailure: (state, action) => {
-            console.log(action.payload)
             state.errorMessage = action.payload
         },
         userLogout: (state) => {
@@ -48,10 +47,8 @@ export function fetchUserList(user_id){
         })
         .then((r) => {
             dispatch(fetchSuccess(r))
-            console.log(r)
         })
         .catch((error) => {
-            console.log(error.toString())
             dispatch(fetchFailure(error.toString()))
         })
     }

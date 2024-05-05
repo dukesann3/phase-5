@@ -2,7 +2,7 @@ import { useSelector } from "react-redux"
 import NotificationBlock from "./NotificationBlock"
 
 export default function NotificationList(){
-    const userInfo = useSelector((store) => store.loggedInUser)
+    const userInfo = useSelector((store) => store.user)
     console.log(userInfo)
     return(
         <>

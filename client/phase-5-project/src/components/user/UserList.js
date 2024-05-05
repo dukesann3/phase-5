@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux"
-import { fetchUserList, unLoadErrorMsg } from "../features/user/userList"
+import { fetchUserList, unLoadErrorMsg } from "../../features/user-slice/userList"
 import { useParams } from "react-router-dom"
 import { useEffect } from "react"
 import UserBlock from "./UserBlock"

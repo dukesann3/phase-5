@@ -1,7 +1,11 @@
 import { useFormik } from "formik"
 import * as Yup from 'yup'
+import { useDispatch } from "react-redux"
+import { postPost } from "../../features/post-slice/allPosts"
 
 export default function CreatePost(){
+
+    const dispatch = useDispatch()
 
     function onImageChange(e){
         try{
@@ -17,23 +21,6 @@ export default function CreatePost(){
         }
     }
 
-    function onPost(value){
-        fetch('/posts', {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        })
-        .then((r) => {
-            if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error("Could not create post")
-            throw new Error("Network Error")
-        })
-        .then((r) => console.log(r))
-        .catch((error) => console.log(error))
-    }
-
     const formik = useFormik({
         initialValues: {
             image_uri: "",
@@ -45,7 +32,7 @@ export default function CreatePost(){
             location: Yup.string().required("*required"),
             caption: Yup.string().required("*required")
         }),
-        onSubmit: (value) => onPost(value)
+        onSubmit: (value) => dispatch(postPost(value))
     })
 
     return(
@@ -54,21 +41,27 @@ export default function CreatePost(){
             type="file"
             id="image_uri"
             onChange={onImageChange}
+            placeholder="image"
             />
+            <div>{formik.errors.image_uri}</div>
 
             <input
             type="text"
             id="location"
             onChange={formik.handleChange}
             value={formik.values.location}
+            placeholder="location"
             />
+            <div>{formik.errors.location}</div>
 
             <input
             type="text"
             id="caption"
             onChange={formik.handleChange}
             value={formik.values.caption}
+            placeholder="caption"
             />
+            <div>{formik.errors.caption}</div>
 
             <input 
             type="submit"

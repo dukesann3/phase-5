@@ -3,11 +3,10 @@ import ErrorPage from "./components/ErrorPage";
 import Home from "./components/Home";
 import Login from "./components/Login";
 import Message from "./components/Message";
-import PostPage from "./components/Postpage";
-import UserProfilePage from "./components/UserProfilePage";
+import PostPage from "./components/post/PostBlock";
+import UserProfilePage from "./components/user/UserProfilePage";
 import Welcome from "./components/Welcome";
-import UserTest from "./components/UserTest";
-import CreateAccount from "./components/CreateAccount";
+import CreateAccount from "./components/user/CreateAccount";
 
 // import Tester from "./components/Tester";
 

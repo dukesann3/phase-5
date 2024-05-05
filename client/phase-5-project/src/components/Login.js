@@ -2,7 +2,7 @@
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { useDispatch, useSelector } from 'react-redux' 
-import { fetchUser } from '../features/user/userLogged'
+import { fetchUser } from '../features/user-slice/user'
 import { NavLink } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
@@ -10,7 +10,7 @@ import { useEffect } from 'react'
 function Login(){
 
     const dispatch = useDispatch()
-    const loggedInUser = useSelector((store) => store.loggedInUser)
+    const loggedInUser = useSelector((store) => store.user)
     const navigate = useNavigate()
 
     useEffect(()=>{

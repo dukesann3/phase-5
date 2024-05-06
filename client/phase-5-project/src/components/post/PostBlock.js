@@ -1,6 +1,6 @@
 import CommentList from "../comment/CommentList"
 import { useSelector, useDispatch } from "react-redux"
-import { patchPost, deletePost } from "../../features/post-slice/allPosts"
+import { patchPost, deletePost, postPostLike, deletePostLike} from "../../features/post-slice/allPosts"
 import { useState } from "react"
 import { useFormik } from "formik"
 
@@ -13,7 +13,22 @@ export default function PostBlock({post}){
     const userInfo = useSelector((store) => store.user.value)
     const dispatch = useDispatch()
     
-    const {caption, location, created_at, updated_at, _image_src, comments, id, user_id} = post
+    const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes} = post
+
+    const isLikedByUser = () => {
+        for(const like of post_likes){
+            if(like.user_id === userInfo.id){
+                return {
+                    isLiked: true,
+                    post_like_id: like.id
+                }
+            }
+        }
+        return {
+            isLiked: false,
+            post_like_id: -1
+        }
+    }
 
     const formik = useFormik({
         initialValues: {
@@ -41,6 +56,19 @@ export default function PostBlock({post}){
     function patch(value){
         dispatch(patchPost(value, id))
         setEditMode(false)
+    }
+
+    function pressLike(){
+        const postLikeStatus = isLikedByUser()
+        if(postLikeStatus.isLiked){
+            dispatch(deletePostLike(postLikeStatus.post_like_id))
+        }
+        else{
+            dispatch(postPostLike({
+                post_id: id,
+                isLiked: true
+            }))
+        }
     }
 
     return(
@@ -83,6 +111,8 @@ export default function PostBlock({post}){
                 <img src={_image_src}/>
                 <span>{caption}</span>
                 <span>{location}</span>
+                <span>Likes: {post_likes.length}</span>
+                <button onClick={() => pressLike()}>Like</button>
                 <span>Created at: {created_at}</span>
                 <span>Updated at: {updated_at}</span>
                 <CommentList comments={comments} post_id={id}/>

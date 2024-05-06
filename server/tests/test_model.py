@@ -1,4 +1,4 @@
-from models import User, Friendship, Notification
+from models import User, Friendship, FriendRequestNotification
 from app import app, db
 import ipdb
 
@@ -8,14 +8,14 @@ class TestModel:
         sender_id and reciever_id for it to be added into the database'''
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
             u1 = User(first_name="t1", last_name="t2", username="tt1")
-            u1.password_hash = "t1"
+            u1.password_hash = "12345"
             u2 = User(first_name="t2", last_name="t2", username="tt2")
-            u2.password_hash = "t2"
+            u2.password_hash = "12345"
 
             db.session.add_all([u1, u2])
             db.session.commit()
@@ -38,14 +38,14 @@ class TestModel:
         rejected, or pending'''
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
             u1 = User(first_name="t1", last_name="t2", username="tt1")
-            u1.password_hash = "t1"
+            u1.password_hash = "12345"
             u2 = User(first_name="t2", last_name="t2", username="tt2")
-            u2.password_hash = "t2"
+            u2.password_hash = "12345"
 
             db.session.add_all([u1, u2])
             db.session.commit()
@@ -63,14 +63,14 @@ class TestModel:
         of them are pending. If not, it cannot exist'''
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
             u1 = User(first_name="t1", last_name="t2", username="tt1")
-            u1.password_hash = "t1"
+            u1.password_hash = "12345"
             u2 = User(first_name="t2", last_name="t2", username="tt2")
-            u2.password_hash = "t2"
+            u2.password_hash = "12345"
 
             db.session.add_all([u1, u2])
             db.session.commit()
@@ -94,22 +94,26 @@ class TestModel:
         text, and type'''
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
             u1 = User(first_name="t1", last_name="t2", username="tt1")
-            u1.password_hash = "t1"
+            u1.password_hash = "12345"
             u2 = User(first_name="t2", last_name="t2", username="tt2")
-            u2.password_hash = "t2"
+            u2.password_hash = "12345"
             
             db.session.add_all([u1, u2])
             db.session.commit()
 
-            n1 = Notification(notification_sender_id=u1.id, notification_reciever_id=u2.id,
-                              text="ABC", notification_type="Friend Request")
-            n2 = Notification(notification_sender_id=u1.id, notification_reciever_id=u2.id,
-                              text="ABC", notification_type="Friend Request")
+            f = Friendship(sender_id=u1.id, reciever_id=u2.id)
+            db.session.add(f)
+            db.session.commit()
+
+            n1 = FriendRequestNotification(sender_id=u1.id, reciever_id=u2.id,
+                              friendship_id=f.id,text="ABC")
+            n2 = FriendRequestNotification(sender_id=u1.id, reciever_id=u2.id,
+                              friendship_id=f.id,text="ABC")
             
             try:
                 db.session.add_all([n1, n2])
@@ -124,14 +128,14 @@ class TestModel:
             only to the request reciever'''
             with app.app_context():
                 Friendship.query.delete()
-                Notification.query.delete()
+                FriendRequestNotification.query.delete()
                 User.query.delete()
                 db.session.commit()
 
                 u1 = User(first_name="t1", last_name="t2", username="tt1")
-                u1.password_hash = "t1"
+                u1.password_hash = "12345"
                 u2 = User(first_name="t2", last_name="t2", username="tt2")
-                u2.password_hash = "t2"
+                u2.password_hash = "12345"
 
                 db.session.add_all([u1, u2])
                 db.session.commit()
@@ -140,8 +144,8 @@ class TestModel:
 
                 assert u1.friendships
                 assert u2.friendships
-                assert not u1.notifications
-                assert u2.notifications
+                assert not u1.friend_request_notifications
+                assert u2.friend_request_notifications
 
     def test_accept_friend_request(self):
          '''When friend request is accepted, the friend request
@@ -150,14 +154,14 @@ class TestModel:
          regarding the friend request'''
          with app.app_context():
                 Friendship.query.delete()
-                Notification.query.delete()
+                FriendRequestNotification.query.delete()
                 User.query.delete()
                 db.session.commit()
 
                 u1 = User(first_name="t1", last_name="t2", username="tt1")
-                u1.password_hash = "t1"
+                u1.password_hash = "12345"
                 u2 = User(first_name="t2", last_name="t2", username="tt2")
-                u2.password_hash = "t2"
+                u2.password_hash = "12345"
                 
                 db.session.add_all([u1, u2])
                 db.session.commit()
@@ -167,8 +171,8 @@ class TestModel:
 
                 assert u1.friendships[0].status == "accepted"
                 assert u2.friendships[0].status == "accepted"
-                assert not u1.notifications
-                assert not u2.notifications
+                assert not u1.friend_request_notifications
+                assert not u2.friend_request_notifications
     
 
 

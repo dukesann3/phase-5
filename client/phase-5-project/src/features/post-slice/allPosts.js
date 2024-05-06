@@ -11,7 +11,13 @@ export const postSlice = createSlice({
 
         postCommentErrorMessage: "",
         patchCommentErrorMessage: "",
-        deleteCommentErrorMessage: ""
+        deleteCommentErrorMessage: "",
+
+        postPostLikeErrorMessage: "",
+        deletePostLikeErrorMessage: "",
+
+        postCommentLikeErrorMessage: "",
+        deleteCommentLikeErrorMessage: ""
     },
     reducers: {
         //GET REQUEST==========================
@@ -150,6 +156,96 @@ export const postSlice = createSlice({
         },
         commentDeleteFailure: (state, action) => {
             state.deleteCommentErrorMessage = action.payload
+        },
+
+        //POST REQUEST POSTLIKE=========================
+        postLikePostSuccess: (state, action) => {
+            const newState = state.value
+            for(let i = 0; i < newState.length; i++){
+                if(newState[i].id === action.payload.post_id){
+                    newState[i].post_likes.push(action.payload)
+                }
+            }
+            state.value = newState
+            state.postPostLikeErrorMessage = ""
+        },
+        postLikePostPending: (state) => {
+            state.postPostLikeErrorMessage = ""
+        },
+        postLikePostFailure: (state, action) => {
+            state.postPostLikeErrorMessage = action.payload
+            console.log(action.payload)
+        },
+
+        //DELETE REQUEST POSTLIKE=======================
+        postLikeDeleteSuccess: (state, action) => {
+            //again, action.payload for this one is the post_like_id
+            const stateToBeChanged = state.value
+
+            for(const post of stateToBeChanged){
+                for(let i = 0; i < post.post_likes.length; i++){
+                    if(post.post_likes[i].id === action.payload){
+                        console.log(action.payload)
+                        post.post_likes.shift(i,1)
+                    }
+                }
+            }
+
+            state.value = stateToBeChanged
+            state.deletePostLikeErrorMessage = ""
+        },
+        postLikeDeletePending: (state) => {
+            state.deletePostLikeErrorMessage = ""
+        },
+        postLikeDeleteFailure: (state, action) => {
+            state.deletePostLikeErrorMessage = action.payload
+        },
+
+        //POST REQUEST COMMENTLIKE=======================
+        commentLikePostSuccess: (state, action) => {
+            const newState = state.value
+
+            for(const post of newState){
+                for(const comment of post.comments){
+                    if(comment.id === action.payload.comment_id){
+                        comment.comment_likes.push(action.payload)
+                    }
+                }
+            }
+
+            state.value = newState
+            state.postCommentLikeErrorMessage = ""
+        },
+        commentLikePostPending: (state) => {
+            state.postCommentLikeErrorMessage = ""
+        },
+        commentLikePostFailure: (state, action) => {
+            state.postCommentLikeErrorMessage = action.payload
+        },
+
+        //DELETE REQUEST COMMENTLIKE======================
+        commentLikeDeleteSuccess: (state, action) => {
+            //again, action.payload for this one is the comment_like_id
+            const newState = state.value
+            
+            for(const post of newState){
+                for(const comment of post.comments){
+                    for(let i = 0; i < comment.comment_likes.length; i++){
+                        if(comment.comment_likes[i].id === action.payload){
+                            comment.comment_likes.shift(i,1)
+                        }
+                    }
+                }
+            }
+
+            state.value = newState
+            state.deleteCommentLikeErrorMessage = ""
+        },
+        commentLikeDeletePending: (state) => {
+            state.deleteCommentLikeErrorMessage = ""
+        },
+        commentLikeDeleteFailure: (state, action) => {
+            state.deleteCommentLikeErrorMessage = action.payload
         }
     }
 
@@ -331,6 +427,107 @@ export function deleteComment(c_id){
     }
 }
 
+//POST POSTLIKE REQUEST=========================================
+export function postPostLike(value){
+    return async(dispatch, getState) => {
+        dispatch(postLikePostPending())
+
+        await fetch('/post/like',{
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(value)
+        })
+        .then((r) => {
+            if(r.ok) return r.json()
+            else if(r.status === 404) throw new Error(r.json())
+            throw new Error("Network Error")
+        })
+        .then((resp) => {
+            dispatch(postLikePostSuccess(resp))
+        })
+        .catch((error) => {
+            dispatch(postLikePostFailure(error.toString()))
+        })
+    }
+}
+
+//DELETE POSTLIKE REQUEST========================================
+export function deletePostLike(post_like_id){
+    return async(dispatch, getState) => {
+        dispatch(postLikeDeletePending())
+        await fetch(`/post/like/${post_like_id}`, {
+            method: "DELETE",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then((r) => {
+            if(r.ok){
+                dispatch(postLikeDeleteSuccess(post_like_id))
+                return
+            }
+            else if(r.status === 404) throw new Error(r.json())
+            throw new Error("Network Error")
+        })
+        .catch((error) => {
+            dispatch(postLikeDeleteFailure(error.toString()))
+        })
+    }
+}
+
+//POST COMMENTLIKE REQUEST======================================
+export function postCommentLike(value){
+    return async(dispatch, getState) => {
+        dispatch(commentLikePostPending())
+
+        await fetch('/comment/like', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(value)
+        })
+        .then((r) => {
+            if(r.ok) return r.json()
+            else if(r.status === 404) throw new Error(r.json())
+            throw new Error("Network Error")
+        })
+        .then((resp) => {
+            dispatch(commentLikePostSuccess(resp))
+        })
+        .catch((error) => {
+            dispatch(commentLikePostFailure(error.toString()))
+        })
+    }
+}
+
+//DELETE COMMENTLIKE REQUEST====================================
+export function deleteCommentLike(comment_like_id){
+    return async(dispatch, getState) => {
+        dispatch(commentLikeDeletePending())
+
+        fetch(`/comment/like/${comment_like_id}`, {
+            method: "DELETE",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then((r) => {
+            if(r.ok){
+                dispatch(commentLikeDeleteSuccess(comment_like_id))
+                return
+            }
+            else if(r.status === 404) throw new Error(r.json())
+            throw new Error("Network Error")
+        })
+        .catch((error) => {
+            dispatch(commentLikeDeleteFailure(error.toString()))
+        })
+    }   
+}
+
 function updatedAtComparator(a,b){
     if(a.updated_at < b.updated_at) return -1
     else if(a.updated_at > b.updated_at) return 1
@@ -344,7 +541,11 @@ export const {
     postDeleteSuccess, postDeleteFailure, postDeletePending,
     commentPostSuccess, commentPostFailure, commentPostPending,
     commentPatchSuccess, commentPatchFailure, commentPatchPending,
-    commentDeleteSuccess, commentDeleteFailure, commentDeletePending
+    commentDeleteSuccess, commentDeleteFailure, commentDeletePending,
+    postLikePostSuccess, postLikePostFailure, postLikePostPending,
+    postLikeDeleteSuccess, postLikeDeleteFailure, postLikeDeletePending,
+    commentLikePostSuccess, commentLikePostFailure, commentLikePostPending,
+    commentLikeDeleteSuccess, commentLikeDeleteFailure, commentLikeDeletePending
 } = postSlice.actions
 
 export default postSlice.reducer

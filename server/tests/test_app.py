@@ -1,4 +1,4 @@
-from models import User, Friendship, Notification
+from models import User, Friendship, FriendRequestNotification
 from configs import db
 from app import app
 from flask import Flask, url_for
@@ -13,7 +13,7 @@ class TestLogAndFriendRequest:
         with app.app_context():
             User.query.delete()
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             db.session.commit()
 
         with app.test_client() as client:
@@ -36,7 +36,7 @@ class TestLogAndFriendRequest:
         with app.app_context():
             User.query.delete()
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             db.session.commit()
 
         with app.test_client() as client:
@@ -83,7 +83,7 @@ class TestLogAndFriendRequest:
         with app.app_context():
             User.query.delete()
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             db.session.commit()
 
         with app.test_client() as client:
@@ -122,7 +122,7 @@ class TestLogAndFriendRequest:
         with app.app_context():
             User.query.delete()
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             db.session.commit()
 
         with app.test_client() as client:
@@ -151,8 +151,8 @@ class TestLogAndFriendRequest:
             reciever_friendship = reciever.json['friendships'][0]
 
             assert(sender_friendship == reciever_friendship)
-            assert(len(sender.json['notifications']) == 0)
-            assert(bool(reciever.json['notifications'][0]) == True)
+            assert(len(sender.json['friend_request_notifications']) == 0)
+            assert(bool(reciever.json['friend_request_notifications'][0]) == True)
 
 
     def test_accept_friend_request(self):
@@ -164,7 +164,7 @@ class TestLogAndFriendRequest:
         #check for database entries afterwards
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
@@ -205,7 +205,7 @@ class TestLogAndFriendRequest:
 
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
@@ -244,8 +244,8 @@ class TestLogAndFriendRequest:
 
             assert(len(sender.json['friendships']) == 0)
             assert(len(reciever.json['friendships']) == 0)
-            assert(len(sender.json['notifications']) == 0)
-            assert(len(reciever.json['notifications']) == 0)
+            assert(len(sender.json['friend_request_notifications']) == 0)
+            assert(len(reciever.json['friend_request_notifications']) == 0)
 
     def test_dual_friendship_accept(self):
         '''When both users send each other friend requests
@@ -255,7 +255,7 @@ class TestLogAndFriendRequest:
 
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
@@ -294,8 +294,8 @@ class TestLogAndFriendRequest:
             assert(reciever.status_code == 200)
             assert(f_req_oppo.status_code == 200)
 
-            sender_notification_id = sender.json['notifications'][0]['id']
-            reciever_notification_id = reciever.json['notifications'][0]['id']
+            sender_notification_id = sender.json['friend_request_notifications'][0]['id']
+            reciever_notification_id = reciever.json['friend_request_notifications'][0]['id']
 
             #accepts friend request here-----------------------------------
 
@@ -313,8 +313,8 @@ class TestLogAndFriendRequest:
 
             #check notifications here----------------------------------------
 
-            sender_notification = client.get(f'/notification_test/{sender_notification_id}')
-            reciever_notification = client.get(f'/notification_test/{reciever_notification_id}')
+            sender_notification = client.get(f'/friend_request_notification_test/{sender_notification_id}')
+            reciever_notification = client.get(f'/friend_request_notification_test/{reciever_notification_id}')
 
             assert(sender_notification.status_code == 404)
             assert(reciever_notification.status_code == 404)
@@ -326,7 +326,7 @@ class TestLogAndFriendRequest:
 
         with app.app_context():
             Friendship.query.delete()
-            Notification.query.delete()
+            FriendRequestNotification.query.delete()
             User.query.delete()
             db.session.commit()
 
@@ -367,8 +367,8 @@ class TestLogAndFriendRequest:
             assert(reciever.status_code == 200)
             assert(f_req_oppo.status_code == 200)
 
-            sender_notification_id = sender.json['notifications'][0]['id']
-            reciever_notification_id = reciever.json['notifications'][0]['id']
+            sender_notification_id = sender.json['friend_request_notifications'][0]['id']
+            reciever_notification_id = reciever.json['friend_request_notifications'][0]['id']
 
             #accepts friend request here-----------------------------------
 
@@ -385,8 +385,8 @@ class TestLogAndFriendRequest:
 
             #check notifications here----------------------------------------
 
-            sender_notification = client.get(f'/notification_test/{sender_notification_id}')
-            reciever_notification = client.get(f'/notification_test/{reciever_notification_id}')
+            sender_notification = client.get(f'/friend_request_notification_test/{sender_notification_id}')
+            reciever_notification = client.get(f'/friend_request_notification_test/{reciever_notification_id}')
 
             assert(sender_notification.status_code == 404)
             assert(reciever_notification.status_code == 404)

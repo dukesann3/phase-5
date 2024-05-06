@@ -22,7 +22,7 @@ export default function PostList(){
             {posts ? 
             <>
                 {posts.map((post) => {
-                    return <PostBlock post={post}/>
+                    return <PostBlock key={post.id} post={post}/>
                 })}
             </>
             :

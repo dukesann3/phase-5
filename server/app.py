@@ -2,7 +2,7 @@
 
 from flask import jsonify, request, make_response, session
 from flask_restful import Resource
-from models import User, Friendship, Notification, Post, Comment, PostLike, CommentLike
+from models import User, Friendship, FriendRequestNotification, Post, Comment, PostLike, CommentLike
 from configs import api, app, db
 import ipdb
 import urllib.request
@@ -29,10 +29,10 @@ class FriendshipTestSpecifics(Resource):
         except:
             return make_response({"message": "Error, friend request could not be found"}, 404)
         
-class NotificationTestSpecifics(Resource):
+class FRNotificationTestSpecifics(Resource):
     def get(self, n_id):
         try:
-            notification = Notification.query.filter(Notification.id == n_id).first().to_dict()
+            notification = FriendRequestNotification.query.filter(FriendRequestNotification.id == n_id).first().to_dict()
             return make_response(notification, 200)
         except:
             return make_response({"message": "Error, notification could not be found"}, 404)
@@ -361,8 +361,60 @@ class CommentEdit(Resource):
             return make_response({"message": "Comment deleted successfully"}, 204)
         except:
             return make_response({"message": "Error, comment could not be deleted"}, 404)
-    
-    
+        
+class PostLikes(Resource):
+    def post(self):
+        response = request.get_json()
+        try:
+            post_like = PostLike(
+                isLiked=response["isLiked"],
+                user_id=session["user_id"],
+                post_id=response["post_id"]
+            )
+            db.session.add(post_like)
+            db.session.commit()
+
+            return make_response(post_like.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, post could not be liked"}, 404)
+
+class PostLikeDelete(Resource):
+    def delete(self, post_like_id):
+        try:
+            post_like_to_delete = PostLike.query.filter(PostLike.id == post_like_id).first()
+            db.session.delete(post_like_to_delete)
+            db.session.commit()
+            return make_response({"message": "Post like deleted successfully"}, 204)
+        except:
+            return make_response({"message": "Error, post like could not be deleted"}, 404)     
+
+class CommentLikes(Resource):
+    def post(self):
+        response = request.get_json()
+        try:
+            comment_like = CommentLike(
+                isLiked=response["isLiked"],
+                user_id=session["user_id"],
+                comment_id=response["comment_id"]
+            )
+            db.session.add(comment_like)
+            db.session.commit()
+
+            return make_response(comment_like.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, comment could not be liked"}, 404)
+        
+class CommentLikeDelete(Resource):
+    def delete(self, comment_like_id):
+        try:
+            comment_like_to_delete = CommentLike.query.filter(CommentLike.id == comment_like_id).first()
+            db.session.delete(comment_like_to_delete)
+            db.session.commit()
+            return make_response({"message": "Comment like deleted successfully"}, 204)
+        except:
+            return make_response({"message": "Error, comment like could not be deleted"}, 404) 
+
+
 api.add_resource(Users, "/users/<int:user_id>")
 api.add_resource(SpecificUsers, "/users/<int:id>")
 api.add_resource(UserTest, '/all_users')
@@ -377,16 +429,20 @@ api.add_resource(CheckSession, "/checksession")
 
 api.add_resource(Posts, "/posts", endpoint="check_session")
 api.add_resource(PostEdit, "/post/<int:p_id>")
+api.add_resource(PostLikes, "/post/like")
+api.add_resource(PostLikeDelete, "/post/like/<int:post_like_id>")
 
 api.add_resource(Comments, '/comment')
 api.add_resource(CommentEdit, '/comment/<int:c_id>')
+api.add_resource(CommentLikes, '/comment/like')
+api.add_resource(CommentLikeDelete, '/comment/like/<int:comment_like_id>')
 
 #for testing purposes only-----------------------------------------------------
 api.add_resource(TestCreateAnAccount, "/test_create_an_account")
 api.add_resource(UserTestSpecifics, "/user_test/<int:user_id>")
 api.add_resource(FriendshipTest, "/friendships")
 api.add_resource(FriendshipTestSpecifics, "/friendship_test/<int:f_id>")
-api.add_resource(NotificationTestSpecifics, "/notification_test/<int:n_id>")
+api.add_resource(FRNotificationTestSpecifics, "/friend_request_notification_test/<int:n_id>")
 api.add_resource(PostTest, '/post_test')
 
 if __name__ == "__main__":

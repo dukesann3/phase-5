@@ -2,7 +2,7 @@
 
 from flask import jsonify, request, make_response, session
 from flask_restful import Resource
-from models import User, Friendship, FriendRequestNotification, Post, Comment, PostLike, CommentLike
+from models import User, Friendship, FriendRequestNotification, Post, Comment, PostLike, CommentLike, PostLikeNotification, CommentLikeNotification, CommentNotification
 from configs import api, app, db
 import ipdb
 import urllib.request
@@ -51,6 +51,11 @@ class PostTest(Resource):
     def get(self):
         all_posts = [post.to_dict() for post in Post.query.all()]
         return make_response(all_posts, 200)
+    
+class CommentTest(Resource):
+    def get(self):
+        all_comments = [comment.to_dict() for comment in Comment.query.all()]
+        return make_response(all_comments, 200)
 
 #============ For Testing Purposes Only!!! ==================================#
 
@@ -63,7 +68,6 @@ class Login(Resource):
         
         try:
             if potential_user.authenticate(response["password"]):
-
                 session["user_id"] = potential_user.id
                 session["n_of_users"] = 0
 
@@ -87,9 +91,9 @@ class CheckSession(Resource):
             if user:
                 return make_response(user.to_dict(), 200)
             else:
-                return make_response({"message": "Error, could not find user data in session"}, 404)
-        except:
-            return make_response({"message": "Network Error"}, 500)
+                raise ValueError("Error, could not find user data in session")
+        except ValueError as err:
+            return make_response({"message": err}, 404)
 
 class Users(Resource):
     def get(self, user_id):
@@ -201,19 +205,15 @@ class Posts(Resource):
         response = request.get_json()
     
         try:
-
             user_id = session["user_id"]
             image_uri = response["image_uri"]
-
             new_post = Post(
                 location=response["location"],
                 caption=response["caption"],
                 user_id=user_id
             )
-
             db.session.add(new_post)
             db.session.commit()
-
             if image_uri:
                 resp = urllib.request.urlopen(image_uri)
                 new_post_path = f'../client/phase-5-project/public/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{new_post.id}.jpg'
@@ -324,13 +324,33 @@ class Comments(Resource):
         response = request.get_json()
 
         try:
+            print("A")
+            print(response)
+            print(request)
             post_id = response["post_id"]
             text = response["text"]
             user_id = session["user_id"]
-
+            print("B")
             new_comment = Comment(post_id=post_id, user_id=user_id, text=text)
             db.session.add(new_comment)
             db.session.commit()
+            print("C")
+            reciever = Post.query.filter(Post.id == post_id).first().user
+            sender_username = User.query.filter(User.id == user_id).first().username
+            print("D")
+            reciever_id = reciever.id
+            reciever_username = reciever.username
+            print("E")
+            print(reciever, sender_username)
+            cn = CommentNotification(
+                sender_id=user_id,
+                reciever_id=reciever_id,
+                comment_id=new_comment.id,
+                text=f"{sender_username} commented on {reciever_username}'s post"
+            )
+            db.session.add(cn)
+            db.session.commit()
+            print("F")
             return make_response(new_comment.to_dict(), 200)
         except:
             return make_response({"message": "Error, could not create new comment"}, 404)
@@ -366,12 +386,30 @@ class PostLikes(Resource):
     def post(self):
         response = request.get_json()
         try:
+            isLiked = response["isLiked"]
+            user_id = session["user_id"]
+            post_id = response["post_id"]
+
             post_like = PostLike(
-                isLiked=response["isLiked"],
-                user_id=session["user_id"],
-                post_id=response["post_id"]
+                isLiked=isLiked,
+                user_id=user_id,
+                post_id=post_id
             )
+
             db.session.add(post_like)
+            db.session.commit()
+
+            sender_username = User.query.filter(User.id == user_id).first().username
+            reciver_id = Post.query.filter(Post.id == post_id).first().user_id
+
+            post_like_notification = PostLikeNotification(
+                sender_id=user_id,
+                reciever_id=reciver_id,
+                post_id=post_id,
+                text=f"{sender_username} liked your post"
+            )
+
+            db.session.add(post_like_notification)
             db.session.commit()
 
             return make_response(post_like.to_dict(), 200)
@@ -392,12 +430,31 @@ class CommentLikes(Resource):
     def post(self):
         response = request.get_json()
         try:
+            user_id = session["user_id"]
+            isLiked = response["isLiked"]
+            comment_id = response["comment_id"]
+
             comment_like = CommentLike(
-                isLiked=response["isLiked"],
-                user_id=session["user_id"],
-                comment_id=response["comment_id"]
+                isLiked=isLiked,
+                user_id=user_id,
+                comment_id=comment_id
             )
             db.session.add(comment_like)
+            db.session.commit()
+
+            reciever = Comment.query.filter(Comment.id == comment_id).first().user
+            reciever_id = reciever.id
+            reciever_username = reciever.username
+
+            sender_username = User.query.filter(User.id == user_id).first().username
+
+            cln = CommentLikeNotification(
+                sender_id=user_id,
+                reciever_id = reciever_id,
+                comment_id=comment_id,
+                text=f"{sender_username} liked {reciever_username}'s comment"
+            )
+            db.session.add(cln)
             db.session.commit()
 
             return make_response(comment_like.to_dict(), 200)
@@ -444,6 +501,7 @@ api.add_resource(FriendshipTest, "/friendships")
 api.add_resource(FriendshipTestSpecifics, "/friendship_test/<int:f_id>")
 api.add_resource(FRNotificationTestSpecifics, "/friend_request_notification_test/<int:n_id>")
 api.add_resource(PostTest, '/post_test')
+api.add_resource(CommentTest, '/comment_test')
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

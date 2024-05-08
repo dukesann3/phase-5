@@ -23,6 +23,8 @@ class Post(db.Model, SerializerMixin):
     comments = db.relationship("Comment", back_populates="post")
     post_likes = db.relationship("PostLike", back_populates="post")
 
+    post_like_notifications = db.relationship("PostLikeNotification", back_populates="post")
+
     @hybrid_property
     def image_src(self):
         return self._image_src
@@ -34,13 +36,11 @@ class Post(db.Model, SerializerMixin):
         
         self._image_src = image_src
 
-    serialize_rules = ("-user",)
+    serialize_rules = ("-user",
+                       "-post_like_notifications.sender", "-post_like_notifications.reciever", "-post_like_notifications.post")
 
 class PostLike(db.Model, SerializerMixin):
     __tablename__ = "postlikes"
-    __tableargs__ = (
-        db.UniqueConstraint("user_id", "post_id", name="unique_post_like_foreign_keys"),
-    )
 
     id = db.Column(db.Integer, primary_key=True)
     isLiked = db.Column(db.Boolean, default=True)
@@ -54,6 +54,22 @@ class PostLike(db.Model, SerializerMixin):
 
     serialize_rules = ("-user","-post")
 
+class PostLikeNotification(db.Model, SerializerMixin):
+    __tablename__ = "post_like_notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id", nullable=False)
+    reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="reciever_id", nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+    text = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+
+    sender = db.relationship("User", foreign_keys=[sender_id], back_populates="post_like_notifications")
+    reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="post_like_notifications")
+    post = db.relationship("Post", foreign_keys=[post_id], back_populates="post_like_notifications")
+
+
 class Comment(db.Model, SerializerMixin):
     __tablename__ = "comments"
 
@@ -66,15 +82,34 @@ class Comment(db.Model, SerializerMixin):
 
     user = db.relationship("User", back_populates="comments")
     post = db.relationship("Post", back_populates="comments")
+    comment_notification = db.relationship("CommentNotification", back_populates="comment")
     comment_likes = db.relationship("CommentLike", back_populates="comment")
+    comment_like_notifications = db.relationship("CommentLikeNotification", back_populates="comment")
 
-    serialize_rules = ("-post","-user")
+    serialize_rules = ("-post","-user",
+                       "-comment_notification.sender", "-comment_notification.reciever","-comment_notification.comment",
+                       "-comment_likes.sender", "-comment_likes.reciever", "-comment_likes.comment",
+                       "-comment_like_notifications.sender", "-comment_like_notifications.reciever", "-comment_like_notifications.comment")
+
+class CommentNotification(db.Model, SerializerMixin):
+    __tablename__ = "comment_notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    comment_id = db.Column(db.Integer, db.ForeignKey("comments.id"), nullable=False)
+    text = db.Column(db.String, nullable=False)
+
+    comment = db.relationship("Comment", foreign_keys=[comment_id], back_populates="comment_notification")
+    sender = db.relationship("User", foreign_keys=[sender_id], back_populates="comment_notifications")
+    reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="comment_notifications")
+
+    serialize_rules = ("-user", "-comment")
 
 class CommentLike(db.Model, SerializerMixin):
-    __tablename__ = "commentlikes"
-    __tableargs__ = (
-        db.UniqueConstraint("user_id", "comment_id", name="unique_comment_like_foreign_keys"),
-    )
+    __tablename__ = "comment_likes"
 
     id = db.Column(db.Integer, primary_key=True)
     isLiked = db.Column(db.Boolean, default=True)
@@ -88,7 +123,20 @@ class CommentLike(db.Model, SerializerMixin):
 
     serialize_rules = ("-user", "-comment")
 
+class CommentLikeNotification(db.Model, SerializerMixin):
+    __tablename__ = "comment_like_notifications"
 
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id", nullable=False)
+    reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="reciever_id", nullable=False)
+    comment_id = db.Column(db.Integer, db.ForeignKey("comments.id"), nullable=False)
+    text = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+
+    sender = db.relationship("User", foreign_keys=[sender_id], back_populates="comment_like_notifications")
+    reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="comment_like_notifications")
+    comment = db.relationship("Comment", foreign_keys=[comment_id], back_populates="comment_like_notifications")
 
 class Friendship(db.Model, SerializerMixin):
     __tablename__ = "friendships"
@@ -199,18 +247,38 @@ class User(db.Model, SerializerMixin):
 
     friendships = db.relationship(
         "Friendship",
-        primaryjoin="or_(User.id == Friendship.reciever_id, User.id == Friendship.sender_id)"
+        primaryjoin="or_(User.id == Friendship.reciever_id, User.id == Friendship.sender_id)",
+        cascade="all, delete"
     )
 
     friend_request_notifications = db.relationship(
         "FriendRequestNotification",
         primaryjoin="(User.id == FriendRequestNotification.reciever_id)",
+        cascade="all, delete"
     )
 
-    posts = db.relationship("Post", back_populates="user")
-    comments = db.relationship("Comment", back_populates="user")
-    post_like = db.relationship("PostLike", back_populates="user")
-    comment_like = db.relationship("CommentLike", back_populates="user")
+    posts = db.relationship("Post", back_populates="user", cascade="all, delete")
+    comments = db.relationship("Comment", back_populates="user", cascade="all, delete")
+    post_like = db.relationship("PostLike", back_populates="user", cascade="all, delete")
+    comment_like = db.relationship("CommentLike", back_populates="user", cascade="all, delete")
+
+    post_like_notifications = db.relationship(
+        "PostLikeNotification",
+        primaryjoin="(User.id == PostLikeNotification.reciever_id)",
+        cascade="all, delete"
+    )
+
+    comment_like_notifications = db.relationship(
+        "CommentLikeNotification",
+        primaryjoin="(User.id == CommentLikeNotification.reciever_id)",
+        cascade="all, delete"
+    )
+
+    comment_notifications = db.relationship(
+        "CommentNotification",
+        primaryjoin="(User.id == CommentNotification.reciever_id)",
+        cascade="all, delete"
+    )
 
     @hybrid_property
     def password_hash(self):
@@ -301,7 +369,10 @@ class User(db.Model, SerializerMixin):
                         "-post_like", "-comment_like",
                         "-friend_request_notifications.reciever", "-friend_request_notifications.sender",
                         "-friend_request_notifications.friendship.sender","-friend_request_notifications.friendship.reciever","-friend_request_notifications.friendship.friend_request_notification", 
-                        "-friendships.reciever", "-friendships.sender", "-friendships.friend_request_notification")
+                        "-friendships.reciever", "-friendships.sender", "-friendships.friend_request_notification",
+                        "-post_like_notifications.sender", "-post_like_notifications.reciever", "-post_like_notifications.post",
+                        "-comment_notifications.sender", "-comment_notifications.reciever", "-comment_notifications.comment",
+                        "-comment_like_notifications.sender", "-comment_like_notifications.reciever", "-comment_like_notifications.comment")
 
     def __repr__(self):
         return f'username: {self.first_name}, friendships: {self.friendships}'

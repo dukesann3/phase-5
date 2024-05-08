@@ -8,7 +8,8 @@ export const userSlice = createSlice({
         loginStatus: {
             isLoggedIn: false,
             toggle: "pending"
-        }
+        },
+        notifications: []
     },
     reducers: {
         loginSucceeded: (state, action) => {
@@ -17,6 +18,22 @@ export const userSlice = createSlice({
                 isLoggedIn: true,
                 toggle: "succeeded"
             }
+
+            const friendReqNotifications = action.payload.friend_request_notifications.map((frn) => {
+                return {
+                    type: "friend_request",
+                    value: frn
+                }
+            })
+            const postLikeNotifications = action.payload.post_like_notifications.map((pln) => {
+                return {
+                    type: "post_like",
+                    value: pln
+                }
+            })
+            const altogether = friendReqNotifications.concat(postLikeNotifications)
+            const sortedArray = altogether.sort(updateDateComparison)
+            state.notifications = sortedArray
         },
         loginPending: (state) => {
             state.loginStatus = {
@@ -107,5 +124,17 @@ export function checkSession(){
     }
 }
 
-export const { loginPending, loginFailed, loginSucceeded, logoutSucceeded, logoutPending, logoutFailed } = userSlice.actions
+function updateDateComparison(a, b){
+    if(a.updated_at < b.updated_at){
+        return -1
+    }
+    if(a.updated_at > b.updated_at){
+        return 1
+    }
+    return 0
+}
+
+export const { 
+    loginPending, loginFailed, loginSucceeded, 
+    logoutSucceeded, logoutPending, logoutFailed } = userSlice.actions
 export default userSlice.reducer

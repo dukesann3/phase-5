@@ -1,19 +1,26 @@
 import { useSelector, useDispatch } from "react-redux"
+// import { createSelector } from "reselect"
 import CreatePost from "./CreatePost"
 import { useEffect } from "react"
 import { getPosts } from "../../features/post-slice/allPosts"
 import PostBlock from "./PostBlock"
+// import { updatedAtComparator } from "../../useful_functions"
 
 export default function PostList(){
 
-    const posts = useSelector((store) => store.allPost.value)
+    //work on this later
+    // const sortedViaUpdateDate = createSelector(
+    //     (state) => state.allPost.value,
+    //     (posts) => posts.sort(updatedAtComparator)
+    // )
+
+    const posts = useSelector(state => state.allPost.value)
     const dispatch = useDispatch()
 
     useEffect(()=>{
         dispatch(getPosts())  
     },[])
 
-    console.log(posts)
 
     return(
         <>

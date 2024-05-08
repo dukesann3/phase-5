@@ -8,7 +8,7 @@ export default function NotificationList(){
         <>
             <span>Notification List</span>
             {   Object.keys(userInfo.value).length !== 0 ?
-                userInfo.value.notifications.map((notification) => {
+                userInfo.notifications.map((notification) => {
                     //try to distinguish between friend request notification and post like/ comment like notification
                     return <NotificationBlock key={notification.id} notification={notification}/>
                 })

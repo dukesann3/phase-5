@@ -17,6 +17,7 @@ export default function CreatePost(){
             })
         }
         catch(error){
+            console.log("file reader error")
             console.log(error)
         }
     }

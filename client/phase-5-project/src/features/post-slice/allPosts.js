@@ -35,11 +35,9 @@ export const postSlice = createSlice({
         //POST REQUEST==========================
 
         postSuccess: (state, action) => {
-            const currentValue = state.value
-            const updatedValue = currentValue.push(action.payload)
-            const sortedUpdatedValue = updatedValue.sort(updatedAtComparator)
+            const updatedState = [...state.value, action.payload]
 
-            state.value = sortedUpdatedValue
+            state.value = updatedState
             state.postErrorMessage = ""
         },
         postPending: (state) => {
@@ -291,7 +289,8 @@ export function postPost(value){
             throw new Error("Network Error")
         })
         .then((resp) => {
-            dispatch(postPost(resp))
+            console.log(resp)
+            dispatch(postSuccess(resp))
         })
         .catch((error) => {
             dispatch(postFailure(error.toString()))
@@ -526,12 +525,6 @@ export function deleteCommentLike(comment_like_id){
             dispatch(commentLikeDeleteFailure(error.toString()))
         })
     }   
-}
-
-function updatedAtComparator(a,b){
-    if(a.updated_at < b.updated_at) return -1
-    else if(a.updated_at > b.updated_at) return 1
-    return 0
 }
 
 export const { 

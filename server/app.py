@@ -161,8 +161,9 @@ class FriendRequest(Resource):
             print("B")
             requester.send_friend_request(reciever_id)
             print("C")
-            created_request = Friendship.query.filter(Friendship.sender_id == requester_id and Friendship.reciever_id == reciever_id).first().to_dict()
+            created_request = Friendship.query.filter(Friendship.sender_id == requester_id, Friendship.reciever_id == reciever_id).first().to_dict()
             print("D")
+            print(created_request)
             return make_response(created_request, 200)
         except:
             return make_response({"message": "Either the sender or reciever of the friend request does not exist"}, 404)
@@ -175,16 +176,25 @@ class FriendRequest(Resource):
         try:
             f = Friendship.query.filter(Friendship.id == friend_request_id).first()
             friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
+            print(f)
+            print(friend_request_id)
+            print(friend_request_reciever)
             friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
+            print("B")
             if friend_request_response == "accepted":
                 updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
+                print("C")
+                print(updated_friend_request)
                 return make_response(updated_friend_request, 200)
             elif friend_request_response == "rejected":
+                print("D")
+                print("rejected")
                 return make_response({"message": "Successfully rejected friend request!"}, 200)     
             else:
-                raise ValueError("Friend request response must be either accepted or rejected", 400)
+                print("E")
+                raise ValueError("Friend request response must be either accepted or rejected")
         except ValueError as err:
-            return make_response({"message": err}, )
+            return make_response({"message": err}, 400)
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
         
@@ -200,7 +210,9 @@ class Posts(Resource):
             post_list = []
 
             for people in user_and_friends:
+                print(people)
                 for post in people.posts:
+                    print(post)
                     post_list.append(post)
             
             sorted_post_list = sorted(post_list, key=lambda post: post.updated_at)
@@ -350,7 +362,7 @@ class Comments(Resource):
             reciever_username = reciever.username
 
             if user_id != reciever_id:
-                cn = CommentNotification(
+                cn = Comment(
                     sender_id=user_id,
                     reciever_id=reciever_id,
                     comment_id=new_comment.id,

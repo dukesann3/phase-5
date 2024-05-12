@@ -10,7 +10,6 @@ export default function UserList(){
     const dispatch = useDispatch()
     let { user_id } = useParams()
 
-    console.log(userList.value)
     useEffect(() => {
         if(userList.errorMessage !== ""){
             onErrorMsg(userList.errorMessage)

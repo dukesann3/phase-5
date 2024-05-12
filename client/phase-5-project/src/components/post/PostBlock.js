@@ -13,7 +13,7 @@ export default function PostBlock({post}){
     const userInfo = useSelector((store) => store.user.value)
     const dispatch = useDispatch()
     
-    const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes} = post
+    const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes, user} = post
 
     const liked_posts = () => {
         let posts = []
@@ -119,6 +119,7 @@ export default function PostBlock({post}){
             :
             <>
                 <img src={_image_src}/>
+                <span>Post By: {user.username}</span>
                 <span>{caption}</span>
                 <span>{location}</span>
                 <span>Likes: {liked_posts()}</span>

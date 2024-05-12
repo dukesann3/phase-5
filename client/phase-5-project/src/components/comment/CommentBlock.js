@@ -6,7 +6,7 @@ import { useState } from "react"
 export default function CommentBlock({comment}){
 
     const [editMode, setEditMode] = useState(false)
-    const {text, created_at, updated_at, user_id, id, comment_likes} = comment
+    const {text, created_at, updated_at, user_id, id, comment_likes, user} = comment
 
     const enterEditMode = () => setEditMode(true)
     const exitEditMode = () => setEditMode(false)
@@ -79,6 +79,7 @@ export default function CommentBlock({comment}){
                 <>
                     <h6>This is Comment Block</h6>
                     <span>{text}</span>
+                    <span>Comment By: {user.username}</span>
                     <span>Likes: {comment_likes.length}</span>
                     <button onClick={() => pressLike()}>Like</button>
                     <span>Created At: {created_at}</span>

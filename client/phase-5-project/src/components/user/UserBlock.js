@@ -6,16 +6,14 @@ export default function UseBlock({user}){
 
     const loggedInUser = useSelector((store) => store.user.value)
     const dispatch = useDispatch()
-    const [state, setState] = useState(false)
-
-    const sent = () => setState(true)
+    const [sent, setSent] = useState(false)
 
     function send_friend_request(){
         dispatch(sendFriendRequest({
             sender_id: loggedInUser.id,
             reciever_id: user.id
         }))
-        sent()
+        setSent(true)
     }
 
     return(
@@ -24,7 +22,7 @@ export default function UseBlock({user}){
             <span>Last Name: {user.last_name}</span>
             <span>Username: {user.username}</span>
             {
-                state ?
+                sent ?
                 <span>Sent</span>
                 :
                 <button onClick={send_friend_request}>Send Friend Request</button>

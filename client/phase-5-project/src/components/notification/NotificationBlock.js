@@ -14,6 +14,10 @@ export default function NotificationBlock({notification}){
 
     const onResponseChange = (response, e) => {
         e.preventDefault()
+        console.log("responding to friend request", response)
+        console.log("responding to friend request", notification.value.friendship_id)
+        console.log(notification.value)
+
         fetch('/friendships/send_request', {
             method: "PATCH",
             headers: {
@@ -21,7 +25,7 @@ export default function NotificationBlock({notification}){
             },
             body: JSON.stringify({
                 friend_request_response: response,
-                friend_request_id: notification.value.friendship[0].id
+                friend_request_id: notification.value.friendship_id
             })
         })
         .then((r) => {

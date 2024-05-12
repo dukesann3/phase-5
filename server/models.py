@@ -36,7 +36,8 @@ class Post(db.Model, SerializerMixin):
         
         self._image_src = image_src
 
-    serialize_rules = ("-user",
+    serialize_rules = ("-user.friendships", "-user.posts", "-user.comments", "-user.comment_like_notifications",
+                       "-user.comment_notifications", "-user.friend_request_notifications", "-user.post_like_notifications",
                        "-post_like_notifications.sender", "-post_like_notifications.reciever", "-post_like_notifications.post",
                        "-comments.comment_like_notifications")
 
@@ -104,7 +105,8 @@ class Comment(db.Model, SerializerMixin):
     comment_likes = db.relationship("CommentLike", back_populates="comment")
     comment_like_notifications = db.relationship("CommentLikeNotification", back_populates="comment")
 
-    serialize_rules = ("-post","-user",
+    serialize_rules = ("-post", "-user.friendships", "-user.posts", "-user.comments", "-user.comment_like_notifications",
+                       "-user.comment_notifications", "-user.friend_request_notifications", "-user.post_like_notifications",
                        "-comment_notification.sender", "-comment_notification.reciever","-comment_notification.comment",
                        "-comment_likes.sender", "-comment_likes.reciever", "-comment_likes.comment",
                        "-comment_like_notifications.sender", "-comment_like_notifications.reciever", "-comment_like_notifications.comment")
@@ -375,10 +377,10 @@ class User(db.Model, SerializerMixin):
     
     @hybrid_method
     def send_friend_request(self, potential_friend_id):
-
         friendship = Friendship(sender_id=self.id, reciever_id=potential_friend_id)
         db.session.add(friendship)
         db.session.commit()
+
         friend_request_notification = FriendRequestNotification(sender_id=self.id, reciever_id=potential_friend_id, friendship_id=friendship.id,
                                     text=f"{self.first_name} wants to be friends with you")
         db.session.add(friend_request_notification)
@@ -390,13 +392,17 @@ class User(db.Model, SerializerMixin):
     def respond_to_friend_request(self, friend_request_id, response):
         if not response in ["accepted", "rejected"]:
             raise ValueError("Response must be either accepted or rejected")
-        
+    
         f = Friendship.query.filter(Friendship.id == friend_request_id).first()
-        n = FriendRequestNotification.query.filter(FriendRequestNotification.sender_id == f.sender_id and FriendRequestNotification.reciever_id == self.id).first()
+        print(f)
+        n = FriendRequestNotification.query.filter(FriendRequestNotification.sender_id == f.sender_id, FriendRequestNotification.reciever_id == self.id).first()
+        print(n)
         #must delete opposite friend request it is a two way friend request before accepting or rejecting
-        oppo_f = Friendship.query.filter(Friendship.sender_id == f.reciever_id and Friendship.reciever_id == f.sender_id).first()
-        oppo_n = FriendRequestNotification.query.filter(FriendRequestNotification.sender_id == self.id and FriendRequestNotification.reciever_id == f.sender_id).first()
-
+        print("reciever id", f.reciever_id)
+        print("sender id", f.sender_id)
+        oppo_f = Friendship.query.filter(Friendship.sender_id == f.reciever_id, Friendship.reciever_id == f.sender_id).first()
+        print(oppo_f)
+        oppo_n = FriendRequestNotification.query.filter(FriendRequestNotification.sender_id == f.reciever_id, FriendRequestNotification.reciever_id == f.sender_id).first()
         if oppo_f:
             if not oppo_f.status == response:
                 db.session.delete(oppo_n)
@@ -405,15 +411,19 @@ class User(db.Model, SerializerMixin):
         
         if response == "accepted":
             f.status = response
-            db.session.add(f)
             db.session.commit()
             db.session.delete(n)
             db.session.commit()
         elif response == "rejected":
+            print("in rejected")
             db.session.delete(n)
+            print("A")
             db.session.commit()
+            print("B")
             db.session.delete(f)
+            print("C")
             db.session.commit()
+            print("D")
 
             
     # serialize_rules = ("-friendships.reciever","-friendships.sender", "-notifications.notification_sender"

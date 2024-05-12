@@ -183,7 +183,6 @@ export const postSlice = createSlice({
             for(const post of stateToBeChanged){
                 for(let i = 0; i < post.post_likes.length; i++){
                     if(post.post_likes[i].id === action.payload){
-                        console.log(action.payload)
                         post.post_likes.shift(i,1)
                     }
                 }

@@ -56,6 +56,11 @@ class CommentTest(Resource):
     def get(self):
         all_comments = [comment.to_dict() for comment in Comment.query.all()]
         return make_response(all_comments, 200)
+    
+class PostLikeNotifications(Resource):
+    def get(self):
+        all_post_like_note = [pln.to_dict() for pln in PostLikeNotification.query.all()]
+        return make_response(all_post_like_note, 200)
 
 #============ For Testing Purposes Only!!! ==================================#
 
@@ -109,13 +114,16 @@ class Users(Resource):
             
             n_of_users = session["n_of_users"]
             users = []
+            friendships = loggedInUser.friendships
+            f_sender_ids = [f.sender_id for f in friendships]
+            f_reciever_ids = [f.reciever_id for f in friendships]
 
             for user in User.query.all():
-                if user in loggedInUser.friends or user == loggedInUser:
+                if user.id == loggedInUser.id or (user.id in f_sender_ids or user.id in f_reciever_ids):
                     continue
+        
                 users.append(user)
-            
-            print(users)
+                
             users_dict = [user.to_dict() for user in users]
             users_dict_return = users_dict[:n_of_users]
 
@@ -148,9 +156,13 @@ class FriendRequest(Resource):
         reciever_id = int(response["reciever_id"])
 
         try:
+            print("A")
             requester = User.query.filter(User.id == requester_id).first()
+            print("B")
             requester.send_friend_request(reciever_id)
+            print("C")
             created_request = Friendship.query.filter(Friendship.sender_id == requester_id and Friendship.reciever_id == reciever_id).first().to_dict()
+            print("D")
             return make_response(created_request, 200)
         except:
             return make_response({"message": "Either the sender or reciever of the friend request does not exist"}, 404)
@@ -324,33 +336,29 @@ class Comments(Resource):
         response = request.get_json()
 
         try:
-            print("A")
-            print(response)
-            print(request)
             post_id = response["post_id"]
             text = response["text"]
             user_id = session["user_id"]
-            print("B")
+
             new_comment = Comment(post_id=post_id, user_id=user_id, text=text)
             db.session.add(new_comment)
             db.session.commit()
-            print("C")
+
             reciever = Post.query.filter(Post.id == post_id).first().user
             sender_username = User.query.filter(User.id == user_id).first().username
-            print("D")
             reciever_id = reciever.id
             reciever_username = reciever.username
-            print("E")
-            print(reciever, sender_username)
-            cn = CommentNotification(
-                sender_id=user_id,
-                reciever_id=reciever_id,
-                comment_id=new_comment.id,
-                text=f"{sender_username} commented on {reciever_username}'s post"
-            )
-            db.session.add(cn)
-            db.session.commit()
-            print("F")
+
+            if user_id != reciever_id:
+                cn = CommentNotification(
+                    sender_id=user_id,
+                    reciever_id=reciever_id,
+                    comment_id=new_comment.id,
+                    text=f"{sender_username} commented on {reciever_username}'s post"
+                )
+                db.session.add(cn)
+                db.session.commit()
+
             return make_response(new_comment.to_dict(), 200)
         except:
             return make_response({"message": "Error, could not create new comment"}, 404)
@@ -400,29 +408,31 @@ class PostLikes(Resource):
             db.session.commit()
 
             sender_username = User.query.filter(User.id == user_id).first().username
-            reciver_id = Post.query.filter(Post.id == post_id).first().user_id
+            reciever_id = Post.query.filter(Post.id == post_id).first().user_id
 
-            post_like_notification = PostLikeNotification(
-                sender_id=user_id,
-                reciever_id=reciver_id,
-                post_id=post_id,
-                text=f"{sender_username} liked your post"
-            )
+            if user_id != reciever_id:
+                post_like_notification = PostLikeNotification(
+                    sender_id=user_id,
+                    reciever_id=reciever_id,
+                    post_id=post_id,
+                    text=f"{sender_username} liked your post"
+                )
 
-            db.session.add(post_like_notification)
-            db.session.commit()
+                db.session.add(post_like_notification)
+                db.session.commit()
+                print("B")
 
             return make_response(post_like.to_dict(), 200)
         except:
             return make_response({"message": "Error, post could not be liked"}, 404)
 
-class PostLikeDelete(Resource):
+class PostDislike(Resource):
     def delete(self, post_like_id):
         try:
-            post_like_to_delete = PostLike.query.filter(PostLike.id == post_like_id).first()
-            db.session.delete(post_like_to_delete)
+            post_dislike= PostLike.query.filter(PostLike.id == post_like_id).first()
+            db.session.delete(post_dislike)
             db.session.commit()
-            return make_response({"message": "Post like deleted successfully"}, 204)
+            return make_response({"message": "Post dislike successful"}, 200)
         except:
             return make_response({"message": "Error, post like could not be deleted"}, 404)     
 
@@ -447,29 +457,69 @@ class CommentLikes(Resource):
             reciever_username = reciever.username
 
             sender_username = User.query.filter(User.id == user_id).first().username
-
-            cln = CommentLikeNotification(
-                sender_id=user_id,
-                reciever_id = reciever_id,
-                comment_id=comment_id,
-                text=f"{sender_username} liked {reciever_username}'s comment"
-            )
-            db.session.add(cln)
-            db.session.commit()
+            if user_id != reciever_id:
+                cln = CommentLikeNotification(
+                    sender_id=user_id,
+                    reciever_id = reciever_id,
+                    comment_id=comment_id,
+                    text=f"{sender_username} liked {reciever_username}'s comment"
+                )
+                db.session.add(cln)
+                db.session.commit()
 
             return make_response(comment_like.to_dict(), 200)
         except:
             return make_response({"message": "Error, comment could not be liked"}, 404)
         
-class CommentLikeDelete(Resource):
+class CommentDislike(Resource):
     def delete(self, comment_like_id):
         try:
-            comment_like_to_delete = CommentLike.query.filter(CommentLike.id == comment_like_id).first()
-            db.session.delete(comment_like_to_delete)
+            comment_dislike = CommentLike.query.filter(CommentLike.id == comment_like_id).first()
+            db.session.delete(comment_dislike)
             db.session.commit()
-            return make_response({"message": "Comment like deleted successfully"}, 204)
+            return make_response({"message": "Comment dislike successful"}, 200)
         except:
-            return make_response({"message": "Error, comment like could not be deleted"}, 404) 
+            return make_response({"message": "Error, comment like could not be deleted"}, 404)
+        
+class CommentNotifications(Resource):
+    def delete(self, cn_id):
+        try:
+            cn = CommentNotification.query.filter_by(id=cn_id).first()
+            db.session.delete(cn)
+            db.session.commit()
+            return make_response({"message": "Comment notification deleted successfully"}, 204)
+        except:
+            return make_response({"message": "Error, comment notification could not be deleted"}, 404)
+
+class CommentLikeNotifications(Resource):
+    def delete(self, cln_id):
+        try:
+            cln = CommentLikeNotification.query.filter_by(id=cln_id).first()
+            db.session.delete(cln)
+            db.session.commit()
+            return make_response({"message": "Comment like notification deleted successfully"}, 204)
+        except:
+            return make_response({"message": "Error, comment like notification could not be deleted"}, 404)
+
+class PostLikeNotifications(Resource):
+    def delete(self, pln_id):
+        try:
+            pln = PostLikeNotification.query.filter_by(id=pln_id).first()
+            db.session.delete(pln)
+            db.session.commit()
+            return make_response({"message": "Post like notification deleted successfully"}, 204)
+        except:
+            return make_response({"message": "Error, post like notification could not be deleted"}, 404)
+
+# class FriendRequestNotifications(Resource):
+#     def delete(self, frn_id):
+#         try:
+#             frn = FriendRequestNotification.query.filter_by(id=frn_id).first()
+#             db.session.delete(frn)
+#             db.session.commit()
+#             return make_response({"message": "Friend request notification deleted successfully"}, 204)
+#         except:
+#             return make_response({"message": "Error, friend request notification could not be deleted"}, 404)
 
 
 api.add_resource(Users, "/users/<int:user_id>")
@@ -487,12 +537,15 @@ api.add_resource(CheckSession, "/checksession")
 api.add_resource(Posts, "/posts", endpoint="check_session")
 api.add_resource(PostEdit, "/post/<int:p_id>")
 api.add_resource(PostLikes, "/post/like")
-api.add_resource(PostLikeDelete, "/post/like/<int:post_like_id>")
+api.add_resource(PostDislike, "/post/like/<int:post_like_id>")
+api.add_resource(PostLikeNotifications, "/post/like/notification/<int:pln_id>")
 
 api.add_resource(Comments, '/comment')
+api.add_resource(CommentNotifications, '/comment/notification/<int:cn_id>')
 api.add_resource(CommentEdit, '/comment/<int:c_id>')
 api.add_resource(CommentLikes, '/comment/like')
-api.add_resource(CommentLikeDelete, '/comment/like/<int:comment_like_id>')
+api.add_resource(CommentDislike, '/comment/like/<int:comment_like_id>')
+api.add_resource(CommentLikeNotifications, '/comment/like/notification/<int:cln_id>')
 
 #for testing purposes only-----------------------------------------------------
 api.add_resource(TestCreateAnAccount, "/test_create_an_account")
@@ -502,6 +555,7 @@ api.add_resource(FriendshipTestSpecifics, "/friendship_test/<int:f_id>")
 api.add_resource(FRNotificationTestSpecifics, "/friend_request_notification_test/<int:n_id>")
 api.add_resource(PostTest, '/post_test')
 api.add_resource(CommentTest, '/comment_test')
+# api.add_resource(PostLikeNotifications, '/pln_test')
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

@@ -4,7 +4,8 @@ export const userListSlice = createSlice({
     name: 'userList',
     initialState: {
         value: [],
-        errorMessage: ""
+        errorMessage: "",
+        friendRequestErrorMessage: ""
     },
     reducers: {
         fetchSuccess: (state, action) => {
@@ -25,11 +26,28 @@ export const userListSlice = createSlice({
         },
         unLoadErrorMsg: (state) => {
             state.errorMessage = ""
+        },
+        postFRequestSuccess: (state, action) => {
+            //this is more of a patch, but it is what it is
+            const currentState = state.value
+            const newState = currentState.filter((user) => {
+                if(action.payload.reciever_id === user.id){
+                    return false
+                }
+                return true
+            })
+            state.value = newState
+            state.friendRequestErrorMessage = ""
+        },
+        postFRequestPending: (state) => {
+            state.friendRequestErrorMessage = ""
+        },
+        postFRequestFailure: (state, action) => {
+            state.friendRequestErrorMessage = action.payload
         }
     }
 })
 
-//redux thunk here
 export function fetchUserList(user_id){
     return async (dispatch, getState) => {
         fetch(`/users/${user_id}`, {
@@ -54,6 +72,35 @@ export function fetchUserList(user_id){
     }
 }
 
+export function sendFriendRequest(value){
+    return async (dispatch, getState) => {
+        dispatch(postFRequestPending())
 
-export const { fetchSuccess, fetchPending, fetchFailure, userLogout, unLoadErrorMsg } = userListSlice.actions
+        await fetch('/friendships/send_request', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(value)
+        })
+        .then((r) => {
+            if(r.ok) return r.json()
+            else if(r.status === 404) throw new Error("Either the sender or reciever of the friend request does not exist")
+            throw new Error("Network Error")
+        })
+        .then((resp) => {
+            dispatch(postFRequestSuccess(resp))
+        })
+        .catch((err) => {
+            dispatch(postFRequestFailure(err))
+        })
+    }
+}
+
+
+export const { 
+    fetchSuccess, fetchPending, fetchFailure, 
+    userLogout, unLoadErrorMsg,
+    postFRequestSuccess, postFRequestPending, postFRequestFailure
+ } = userListSlice.actions
 export default userListSlice.reducer

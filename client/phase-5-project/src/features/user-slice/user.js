@@ -1,5 +1,22 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, current } from '@reduxjs/toolkit'
 import { userLogout } from './userList'
+import { createSelector } from 'reselect'
+
+//specify deleted notification id in CRUD operation please
+const noteTypeToURLMapper = [
+    {
+        type: "comment_like_notifications",
+        deleteURL: "/comment/like/notification/"
+    },
+    {
+        type: "comment_notifications",
+        deleteURL: "/comment/notification/"
+    },
+    {
+        type: "post_like_notifications",
+        deleteURL: "/post/like/notification/"
+    }
+]
 
 export const userSlice = createSlice({
     name: 'loggedInUser',
@@ -9,9 +26,12 @@ export const userSlice = createSlice({
             isLoggedIn: false,
             toggle: "pending"
         },
-        notifications: []
+        loginErrorMessage: "",
+        logoutErrorMessage: "",
+        deleteNotificationMessage: ""
     },
     reducers: {
+        //LOGIN==============================================
         loginSucceeded: (state, action) => {
             state.value = action.payload
             state.loginStatus = {
@@ -19,46 +39,67 @@ export const userSlice = createSlice({
                 toggle: "succeeded"
             }
 
-            const friendReqNotifications = action.payload.friend_request_notifications.map((frn) => {
-                return {
-                    type: "friend_request",
-                    value: frn
-                }
-            })
-            const postLikeNotifications = action.payload.post_like_notifications.map((pln) => {
-                return {
-                    type: "post_like",
-                    value: pln
-                }
-            })
-            const altogether = friendReqNotifications.concat(postLikeNotifications)
-            const sortedArray = altogether.sort(updateDateComparison)
-            state.notifications = sortedArray
+            state.loginErrorMessage = ""
         },
         loginPending: (state) => {
             state.loginStatus = {
                 isLoggedIn: false, 
                 toggle: "pending"
             }
+
+            state.loginErrorMessage = ""
         },
-        loginFailed: (state) => {
+        loginFailed: (state, action) => {
             state.loginStatus = {
                 isLoggedIn: false,
                 toggle: "failed"
             }
+
+            state.notifications = []
+            state.loginErrorMessage = action.payload
         },
+        //LOGOUT=========================================================
         logoutSucceeded: (state) => {
             state.value = {}
             state.loginStatus = {
                 isLoggedIn: false,
                 toggle: "pending"
             }
+            state.notifications = []
+            state.logoutErrorMessage = ""
         },
-        logoutPending: () => {
-            // return {message: "Logout status is pending"}
+        logoutPending: (state) => {
+            state.logoutErrorMessage = ""
         },
-        logoutFailed: () => {
-            // return {message: "Network error. Could not logout"}
+        logoutFailed: (state, action) => {
+            state.logoutErrorMessage = action.payload
+        },
+        // DELETE POST LIKE NOTIFICATION MESSAGE===========================
+        deleteNotificationSucceeded: (state, action) => {
+            //action.payload should be the PostLikeNotification.id
+            let newState = state.value
+            const type = action.payload.type
+            const id = action.payload.id
+
+            for(const property in newState){
+                if(property.includes("notifications")){
+                    for(let i = 0; i < newState[property].length; i++){
+                        if(newState[property][i].id === id && property === type){
+                            newState[property].splice(i,1)
+                        }
+                    }
+                }
+            }
+
+            
+            state.value = newState
+            state.deleteNotificationMessage = ""
+        },
+        deleteNotificationPending: (state) => {
+            state.deleteNotificationMessage = ""
+        },
+        deleteNotificationFailure: (state, action) => {
+            state.deleteNotificationMessage = action.payload
         }
     }
 })
@@ -124,17 +165,67 @@ export function checkSession(){
     }
 }
 
-function updateDateComparison(a, b){
-    if(a.updated_at < b.updated_at){
-        return -1
+export function deleteNotification(deleteInfo){
+    return async (dispatch, getState) => {
+        dispatch(deleteNotificationPending())
+        const {type, id} = deleteInfo
+        const mappedNoteType = noteTypeToURLMapper.filter((mapper) => mapper.type === type)
+        const deleteURL = mappedNoteType[0].deleteURL + `${id}`
+
+        await fetch(deleteURL, {
+            method: "DELETE",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then((r) => {
+            if(r.ok){
+                dispatch(deleteNotificationSucceeded(deleteInfo))
+                return
+            }
+            else if(r.status === 404) throw new Error("Error, notification could not be deleted")
+            throw new Error("Network Error")
+        })
+        .catch((err) => {
+            dispatch(deleteNotificationFailure(err.toString()))
+        })
     }
-    if(a.updated_at > b.updated_at){
-        return 1
-    }
-    return 0
 }
+
+// function updateDateComparison(a, b){
+//     if(a.updated_at < b.updated_at){
+//         return -1
+//     }
+//     if(a.updated_at > b.updated_at){
+//         return 1
+//     }
+//     return 0
+// }
+
+export const notificationSelector = createSelector(
+    state => state.user,
+    (user) => {
+        let currentState = user.value
+        let notifications = []
+
+        for(const property in currentState){
+            if(property.includes("notifications")){
+                for(let i = 0; i < currentState[property].length; i++){
+                    notifications.push({
+                        type: property,
+                        value: currentState[property][i]
+                    })
+                }
+            }
+        }
+
+        return notifications
+    }
+)
 
 export const { 
     loginPending, loginFailed, loginSucceeded, 
-    logoutSucceeded, logoutPending, logoutFailed } = userSlice.actions
+    logoutSucceeded, logoutPending, logoutFailed,
+    deleteNotificationSucceeded, deleteNotificationPending, deleteNotificationFailure
+} = userSlice.actions
 export default userSlice.reducer

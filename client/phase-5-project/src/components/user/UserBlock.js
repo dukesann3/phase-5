@@ -1,28 +1,21 @@
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
+import { sendFriendRequest } from "../../features/user-slice/userList"
+import { useState } from "react"
 
 export default function UseBlock({user}){
 
     const loggedInUser = useSelector((store) => store.user.value)
+    const dispatch = useDispatch()
+    const [state, setState] = useState(false)
 
-    function sendFriendRequest(e){
-        e.preventDefault()
-        fetch('/friendships/send_request', {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                sender_id: loggedInUser.id,
-                reciever_id: user.id
-            })
-        })
-        .then((r) => {
-            if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error("Either the sender or reciever of the friend request does not exist")
-            throw new Error("Network Error")
-        })
-        .then((r) => console.log(r))
-        .catch((err) => console.log(err))
+    const sent = () => setState(true)
+
+    function send_friend_request(){
+        dispatch(sendFriendRequest({
+            sender_id: loggedInUser.id,
+            reciever_id: user.id
+        }))
+        sent()
     }
 
     return(
@@ -30,7 +23,12 @@ export default function UseBlock({user}){
             <span>First Name: {user.first_name}</span>
             <span>Last Name: {user.last_name}</span>
             <span>Username: {user.username}</span>
-            <button onClick={sendFriendRequest}>Send Friend Request</button>
+            {
+                state ?
+                <span>Sent</span>
+                :
+                <button onClick={send_friend_request}>Send Friend Request</button>
+            }
         </>
     )
 }

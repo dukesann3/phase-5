@@ -1,5 +1,14 @@
+import { useDispatch } from "react-redux"
+import { deleteNotification } from "../../features/user-slice/user"
 
 export default function NotificationBlock({notification}){
+
+    const dispatch = useDispatch()
+
+    const noteInfoToDelete = {
+        id: notification.value.id,
+        type: notification.type
+    }
 
     //play around with this function and if it works, replace it with redux
 
@@ -33,13 +42,13 @@ export default function NotificationBlock({notification}){
             <p>{notification.type}</p>
             <p>{notification.value.text}</p>
             {
-                notification.type === "friend_request"?
+                notification.type === "friend_request_notifications"?
                 <>
                     <button onClick={(e) => onResponseChange("accepted", e)}>Accept</button>
                     <button onClick={(e) => onResponseChange("rejected", e)}>Reject</button>
                 </>
                 :
-                null
+                <button onClick={() => dispatch(deleteNotification(noteInfoToDelete))}>DELETE</button>
             }
         </>
     )

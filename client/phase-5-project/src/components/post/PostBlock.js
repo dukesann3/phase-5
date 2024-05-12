@@ -15,6 +15,16 @@ export default function PostBlock({post}){
     
     const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes} = post
 
+    const liked_posts = () => {
+        let posts = []
+        for(let i = 0; i < post_likes.length; i++){
+            if(post_likes[i].isLiked === true){
+                posts.push(post_likes[i])
+            }
+        }
+        return posts.length
+    }
+
     const isLikedByUser = () => {
         for(const like of post_likes){
             if(like.user_id === userInfo.id){
@@ -111,7 +121,7 @@ export default function PostBlock({post}){
                 <img src={_image_src}/>
                 <span>{caption}</span>
                 <span>{location}</span>
-                <span>Likes: {post_likes.length}</span>
+                <span>Likes: {liked_posts()}</span>
                 <button onClick={() => pressLike()}>Like</button>
                 <span>Created at: {created_at}</span>
                 <span>Updated at: {updated_at}</span>

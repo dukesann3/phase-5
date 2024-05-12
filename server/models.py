@@ -37,7 +37,8 @@ class Post(db.Model, SerializerMixin):
         self._image_src = image_src
 
     serialize_rules = ("-user",
-                       "-post_like_notifications.sender", "-post_like_notifications.reciever", "-post_like_notifications.post")
+                       "-post_like_notifications.sender", "-post_like_notifications.reciever", "-post_like_notifications.post",
+                       "-comments.comment_like_notifications")
 
 class PostLike(db.Model, SerializerMixin):
     __tablename__ = "postlikes"
@@ -56,7 +57,10 @@ class PostLike(db.Model, SerializerMixin):
 
 class PostLikeNotification(db.Model, SerializerMixin):
     __tablename__ = "post_like_notifications"
-
+    __table_args__ = (
+        db.CheckConstraint("sender_id != reciever_id", name="sender_reciever_uniqueness"),
+    )
+    
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id", nullable=False)
     reciever_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="reciever_id", nullable=False)
@@ -68,6 +72,20 @@ class PostLikeNotification(db.Model, SerializerMixin):
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="post_like_notifications")
     reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="post_like_notifications")
     post = db.relationship("Post", foreign_keys=[post_id], back_populates="post_like_notifications")
+
+    serialize_rules = ("-sender", "-receiver", 
+                       "-post.user", "-post.comments", "-post.post_like_notifications")
+    
+    @validates("sender_id", "reciever_id")
+    def validate_users(self, key, user_id):
+        if key == "sender_id":
+            return user_id
+        elif key == "reciever_id":
+            if self.sender_id == user_id:
+                raise ValueError("Cannot have post like notification for yourself")
+            else:
+                return user_id
+
 
 
 class Comment(db.Model, SerializerMixin):
@@ -93,6 +111,9 @@ class Comment(db.Model, SerializerMixin):
 
 class CommentNotification(db.Model, SerializerMixin):
     __tablename__ = "comment_notifications"
+    __table_args__ = (
+        db.CheckConstraint("sender_id != reciever_id", name="sender_reciever_uniqueness"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.now())
@@ -107,6 +128,16 @@ class CommentNotification(db.Model, SerializerMixin):
     reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="comment_notifications")
 
     serialize_rules = ("-user", "-comment")
+
+    @validates("sender_id", "reciever_id")
+    def validate_users(self, key, user_id):
+        if key == "sender_id":
+            return user_id
+        elif key == "reciever_id":
+            if self.sender_id == user_id:
+                raise ValueError("Cannot have comment notification for yourself")
+            else:
+                return user_id
 
 class CommentLike(db.Model, SerializerMixin):
     __tablename__ = "comment_likes"
@@ -125,6 +156,9 @@ class CommentLike(db.Model, SerializerMixin):
 
 class CommentLikeNotification(db.Model, SerializerMixin):
     __tablename__ = "comment_like_notifications"
+    __table_args__ = (
+        db.CheckConstraint("sender_id != reciever_id", name="sender_reciever_uniqueness"),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey("users.id"), name="sender_id", nullable=False)
@@ -137,6 +171,16 @@ class CommentLikeNotification(db.Model, SerializerMixin):
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="comment_like_notifications")
     reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="comment_like_notifications")
     comment = db.relationship("Comment", foreign_keys=[comment_id], back_populates="comment_like_notifications")
+
+    @validates("sender_id", "reciever_id")
+    def validate_users(self, key, user_id):
+        if key == "sender_id":
+            return user_id
+        elif key == "reciever_id":
+            if self.sender_id == user_id:
+                raise ValueError("Cannot have comment like notification for yourself")
+            else:
+                return user_id
 
 class Friendship(db.Model, SerializerMixin):
     __tablename__ = "friendships"
@@ -215,6 +259,7 @@ class FriendRequestNotification(db.Model, SerializerMixin):
     text = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now())
     updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+
 
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="friend_request_notifications")
     reciever = db.relationship("User", foreign_keys=[reciever_id], back_populates="friend_request_notifications")
@@ -317,6 +362,16 @@ class User(db.Model, SerializerMixin):
                 friends.append(friendship.sender)
 
         return friends
+    
+    @hybrid_property
+    def pending_friends(self):
+        pending_friends = []
+        for friendship in self.friendships:
+            if not self.id == friendship.reciever_id and friendship.status == "pending":
+                pending_friends.append(friendship)
+        
+        return pending_friends
+    
     
     @hybrid_method
     def send_friend_request(self, potential_friend_id):

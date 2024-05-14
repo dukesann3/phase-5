@@ -92,7 +92,7 @@ export function sendFriendRequest(value){
             dispatch(postFRequestSuccess(resp))
         })
         .catch((err) => {
-            dispatch(postFRequestFailure(err))
+            dispatch(postFRequestFailure(err.toString()))
         })
     }
 }

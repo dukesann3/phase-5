@@ -28,7 +28,8 @@ export const userSlice = createSlice({
         },
         loginErrorMessage: "",
         logoutErrorMessage: "",
-        deleteNotificationMessage: ""
+        deleteNotificationMessage: "",
+        friendRequestResponseMessage: ""
     },
     reducers: {
         //LOGIN==============================================
@@ -74,7 +75,7 @@ export const userSlice = createSlice({
         logoutFailed: (state, action) => {
             state.logoutErrorMessage = action.payload
         },
-        // DELETE POST LIKE NOTIFICATION MESSAGE===========================
+        //DELETE POST LIKE NOTIFICATION MESSAGE===========================
         deleteNotificationSucceeded: (state, action) => {
             //action.payload should be the PostLikeNotification.id
             let newState = state.value
@@ -100,6 +101,27 @@ export const userSlice = createSlice({
         },
         deleteNotificationFailure: (state, action) => {
             state.deleteNotificationMessage = action.payload
+        },
+        //RESPOND TO FRIEND REQUEST=======================================
+        patchFriendRequestSuccess: (state, action) => {
+            //removes friend request notification once PATCH request goes through
+            //action.payload should come out to be friendship id of the notification that I am deleting
+            let newState = state.value
+            for(let i = 0; newState.friend_request_notifications.length; i++){
+                const notification = newState.friend_request_notifications[i]
+                if(notification.friendship_id === action.payload){
+                    newState.friend_request_notifications.splice(i,1)
+                }
+            }
+
+            state.value = newState
+            state.friendRequestResponseMessage = ""
+        },
+        patchFriendRequestPending: (state) => {
+            state.friendRequestResponseMessage = ""
+        },
+        patchFriendRequestFailure: (state, action) => {
+            state.friendRequestResponseMessage = action.payload
         }
     }
 })
@@ -192,15 +214,33 @@ export function deleteNotification(deleteInfo){
     }
 }
 
-// function updateDateComparison(a, b){
-//     if(a.updated_at < b.updated_at){
-//         return -1
-//     }
-//     if(a.updated_at > b.updated_at){
-//         return 1
-//     }
-//     return 0
-// }
+export function respondToFriendRequest(friendship_id, response){
+    return async (dispatch, getState) => {
+        dispatch(patchFriendRequestPending())
+
+        await fetch('/friendships/send_request', {
+            method: "PATCH",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                friend_request_response: response,
+                friend_request_id: friendship_id
+            })
+        })
+        .then((r) => {
+            if(r.ok) return r.json()
+            else if(r.status === 400) throw new Error("Could not send friend request")
+            throw new Error("Network Error")
+        })
+        .then((r) => {
+            dispatch(patchFriendRequestSuccess(friendship_id))
+        })
+        .catch((err) => {
+            dispatch(patchFriendRequestFailure(err.toString()))
+        })
+    }
+}
 
 export const notificationSelector = createSelector(
     state => state.user,
@@ -226,6 +266,7 @@ export const notificationSelector = createSelector(
 export const { 
     loginPending, loginFailed, loginSucceeded, 
     logoutSucceeded, logoutPending, logoutFailed,
-    deleteNotificationSucceeded, deleteNotificationPending, deleteNotificationFailure
+    deleteNotificationSucceeded, deleteNotificationPending, deleteNotificationFailure,
+    patchFriendRequestSuccess, patchFriendRequestPending, patchFriendRequestFailure
 } = userSlice.actions
 export default userSlice.reducer

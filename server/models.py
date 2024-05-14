@@ -225,7 +225,7 @@ class Friendship(db.Model, SerializerMixin):
         sender_id = self.sender_id
         reciever_id = self.reciever_id
 
-        opposite_friend_request = Friendship.query.filter(Friendship.sender_id == reciever_id and Friendship.reciever_id == sender_id).first()
+        opposite_friend_request = Friendship.query.filter(Friendship.sender_id == reciever_id, Friendship.reciever_id == sender_id).first()
         if not value in ["pending", "accepted", "rejected"]:
             raise ValueError("Friendship status must be pending, accepted, or rejected.")
         elif opposite_friend_request:

@@ -1,5 +1,5 @@
 import { useDispatch } from "react-redux"
-import { deleteNotification } from "../../features/user-slice/user"
+import { deleteNotification, respondToFriendRequest } from "../../features/user-slice/user"
 
 export default function NotificationBlock({notification}){
 
@@ -12,32 +12,9 @@ export default function NotificationBlock({notification}){
 
     //play around with this function and if it works, replace it with redux
 
-    const onResponseChange = (response, e) => {
-        e.preventDefault()
-        console.log("responding to friend request", response)
-        console.log("responding to friend request", notification.value.friendship_id)
-        console.log(notification.value)
-
-        fetch('/friendships/send_request', {
-            method: "PATCH",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                friend_request_response: response,
-                friend_request_id: notification.value.friendship_id
-            })
-        })
-        .then((r) => {
-            if(r.ok) return r.json()
-            else if(r.status === 400) throw new Error(r.json())
-            throw new Error(r.json())
-        })
-        .then((r) => {
-            console.log(r)
-            window.location.reload()
-        })
-        .catch((err) => console.log(err))
+    const onFriendRequestResponse = (response) => {
+        const friendship_id = notification.value.friendship_id
+        dispatch(respondToFriendRequest(friendship_id, response))
     }
 
     return(
@@ -48,8 +25,8 @@ export default function NotificationBlock({notification}){
             {
                 notification.type === "friend_request_notifications"?
                 <>
-                    <button onClick={(e) => onResponseChange("accepted", e)}>Accept</button>
-                    <button onClick={(e) => onResponseChange("rejected", e)}>Reject</button>
+                    <button onClick={() => onFriendRequestResponse("accepted")}>Accept</button>
+                    <button onClick={() => onFriendRequestResponse("rejected")}>Reject</button>
                 </>
                 :
                 <button onClick={() => dispatch(deleteNotification(noteInfoToDelete))}>DELETE</button>

@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux"
 import { fetchUserList, unLoadErrorMsg } from "../../features/user-slice/userList"
-import { useParams } from "react-router-dom"
+import { useParams, NavLink } from "react-router-dom"
 import { useEffect } from "react"
 import UserBlock from "./UserBlock"
 
@@ -49,7 +49,11 @@ export default function UserList(){
                 userList.value.length > 0 ?
                 <>
                     {userList.value.map((user) => {
-                        return <UserBlock key={user.id} user={user}/>
+                        return (
+                            <NavLink to={`/user/${user.id}/profile`}>
+                                <UserBlock key={user.id} user={user}/>
+                            </NavLink>
+                        )
                     })}
                 </>
                 :

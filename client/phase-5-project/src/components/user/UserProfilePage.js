@@ -1,19 +1,63 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import PostBlock from "../post/PostBlock";
+import { useState } from "react";
+import UserProfileEditMode from "./UserProfileEditMode";
+import UserProfile from "./UserProfile";
 
 function UserProfilePage(){
 
-    const loggedInUser = useSelector((store) => store.user)
-    const userValues = loggedInUser.value
+    const [editMode, setEditMode] = useState(false)
 
-    console.log(userValues._image_src)
+    const openEditMode = () => {
+        setEditMode(true)
+        console.log("clicked")
+    }
+    const closeEditMode = () => setEditMode(false)
+
+    const loggedInUser = useSelector((store) => store.user)
+    const postsSlice = useSelector((store) => store.allPost)
+
+    const userValues = loggedInUser.value
+    const posts = postsSlice.value
+
+    const post_info = () => {
+        let user_posts = []
+        for(const post of posts){
+            if(post.user_id == userValues.id){
+                user_posts.push(post)
+            }
+        }
+        return user_posts
+    }
 
     return(
         <>
-            <h3>Profile Page</h3>
-            <img src='/images/2_folder/2_profile_picture_folder/2_profile.jpg' />
-            <span>{userValues.first_name}</span>
-            <span>{userValues.last_name}</span>
-            <span>{userValues.username}</span>
+            {
+                editMode ?
+                <>
+                    <UserProfileEditMode user={userValues} close={closeEditMode}/>
+                    {
+                        post_info()?
+                        post_info().map((post) => {
+                            return <PostBlock key={post.id} post={post}/>
+                        })
+                        :
+                        null
+                    }
+                </>
+                :
+                <>
+                    <UserProfile user={userValues} open={openEditMode}/>
+                    {
+                        post_info()?
+                        post_info().map((post) => {
+                            return <PostBlock key={post.id} post={post}/>
+                        })
+                        :
+                        null
+                    }
+                </>
+            }
         </>
     )
 }

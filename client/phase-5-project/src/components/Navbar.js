@@ -18,7 +18,8 @@ export function Navbar(){
                         dispatch(logoutUser())
                         navigate("/")
                     }}>Logout</button>
-                    <NavLink to={`/profile/${loggedInUser.value.id}`}>Profile</NavLink>
+                    <NavLink to={'/profile'}>Profile</NavLink>
+                    <NavLink to={'/friendslist'}>Friends</NavLink>
                 </nav>
                 :
                 <nav className="not-loggedIn">

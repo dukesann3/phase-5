@@ -2,6 +2,7 @@
 
 from flask import jsonify, request, make_response, session
 from flask_restful import Resource
+from sqlalchemy import and_, or_, not_
 from models import User, Friendship, FriendRequestNotification, Post, Comment, PostLike, CommentLike, PostLikeNotification, CommentLikeNotification, CommentNotification
 from configs import api, app, db
 import ipdb
@@ -160,8 +161,33 @@ class Users(Resource):
             return make_response({"message": f"{error}"}, 401)
         except:
             return make_response({"message": "Error, could not fetch users"}, 402)
-    
 
+    def patch(self, user_id):
+        print("user-patch")
+        response = request.get_json()
+        try:
+            user_to_patch = User.query.filter(User.id == user_id).first()
+            all_attr = user_to_patch.__dict__
+            for attr in all_attr:
+                if response.get(attr):
+                    setattr(user_to_patch, attr, response[attr])
+
+            if response.get("image_uri"):
+                image_uri = response["image_uri"]
+                resp = urllib.request.urlopen(image_uri)
+                profile_picture_path = f'../client/phase-5-project/public/images/{user_to_patch.id}_folder/{user_to_patch.id}_profile_picture_folder/{user_to_patch.id}_profile.jpg'
+                src = f'/images/{user_to_patch.id}_folder/{user_to_patch.id}_profile_picture_folder/{user_to_patch.id}_profile.jpg'
+                with open(profile_picture_path, 'wb') as f:
+                    f.write(resp.file.read())
+                setattr(user_to_patch, "image_src", src)
+            
+            db.session.commit()
+    
+            return make_response(user_to_patch.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, could not patch user"}, 404)
+
+    
 class SpecificUsers(Resource):
     def get(self, id):
         print('specificusers-get')
@@ -174,6 +200,34 @@ class SpecificUsers(Resource):
         
     def post(self):
         pass
+
+class Friends(Resource):
+    def get(self):
+        user_id = session['user_id']
+        user = User.query.filter(User.id == user_id).first()
+        friends = [friend.to_dict() for friend in user.friends]
+        return make_response(friends, 200)
+    
+class FriendsEdit(Resource):
+    def delete(self, f_id):
+        print("start")
+        user_id = session["user_id"]
+        friend_id = f_id
+        try:
+            print(f_id)
+            friendship_to_delete = Friendship.query.filter(or_(
+                and_(Friendship.reciever_id == user_id, Friendship.sender_id == friend_id),
+                and_(Friendship.sender_id == user_id, Friendship.reciever_id == friend_id)
+            )).first()
+            print("huh?")
+            print(friendship_to_delete)
+            db.session.delete(friendship_to_delete)
+            print("yeyeye")
+            db.session.commit()
+            return make_response({"message": "Friend deleted successfully"},200)
+        except:
+            return make_response({"message": "Unable to delete friendship"}, 404)
+
 
 class FriendRequest(Resource):
     def post(self):
@@ -237,9 +291,7 @@ class Posts(Resource):
             post_list = []
 
             for people in user_and_friends:
-                print(people)
                 for post in people.posts:
-                    print(post)
                     post_list.append(post)
             
             sorted_post_list = sorted(post_list, key=lambda post: post.updated_at)
@@ -299,12 +351,31 @@ class PostEdit(Resource):
         response = request.get_json()
 
         try:
+            print("A")
             post_to_patch = Post.query.filter(Post.id == p_id).first()
+            poster_id = post_to_patch.user_id
+            post_id = post_to_patch.id
+            print("B")
             all_attr = post_to_patch.__dict__
+
             for attr in all_attr:
                 if response.get(attr):
                     setattr(post_to_patch, attr, response[attr])
-
+            print("C")
+            if response.get("image_uri"):
+                image_uri = response["image_uri"]
+                print("D")
+                resp = urllib.request.urlopen(image_uri)
+                print("closer")
+                new_post_path = f'../client/phase-5-project/public/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
+                print("here?")
+                src = f'/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
+                print("D.2")
+                with open(new_post_path, 'wb') as f:
+                    f.write(resp.file.read())
+                    print("D.3")
+                setattr(post_to_patch, "_image_src", src)
+            print("E")
             db.session.commit()
             return make_response(post_to_patch.to_dict(), 200)
         except:
@@ -604,6 +675,9 @@ api.add_resource(UserTest, '/all_users')
 api.add_resource(CreateAnAccount, '/create_an_account')
 api.add_resource(onUserListRefresh, "/onrefresh")
 api.add_resource(FriendRequest, "/friendships/send_request")
+
+api.add_resource(Friends, "/user/friends")
+api.add_resource(FriendsEdit, "/user/friends/<int:f_id>")
 
 api.add_resource(Login, "/login")
 api.add_resource(Logout, "/logout")

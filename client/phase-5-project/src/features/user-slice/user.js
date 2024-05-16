@@ -29,7 +29,8 @@ export const userSlice = createSlice({
         loginErrorMessage: "",
         logoutErrorMessage: "",
         deleteNotificationMessage: "",
-        friendRequestResponseMessage: ""
+        friendRequestResponseMessage: "",
+        patchUserErrorMessage: ""
     },
     reducers: {
         //LOGIN==============================================
@@ -122,7 +123,19 @@ export const userSlice = createSlice({
         },
         patchFriendRequestFailure: (state, action) => {
             state.friendRequestResponseMessage = action.payload
-        }
+        },
+        //USER PATCH=======================================================
+        patchUserSuccess: (state, action) => {
+            //let action be the user object returned from the HTTP response
+            state.value = action.payload
+            state.patchUserErrorMessage = ""
+        },
+        patchUserPending: (state) => {
+            state.patchUserErrorMessage = ""
+        },
+        patchUserFailure: (state, action) => {
+            state.patchUserErrorMessage = action.payload
+        } 
     }
 })
 
@@ -242,6 +255,32 @@ export function respondToFriendRequest(friendship_id, response){
     }
 }
 
+export function patchUser(user_id, value){
+    return async (dispatch, getState) => {
+        dispatch(patchUserPending())
+
+        await fetch(`/users/${user_id}`, {
+            method: "PATCH",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(value)
+        })
+        .then((r) => {
+            if(r.ok) return r.json()
+            else if(r.status === 404) throw new Error("Could not edit user")
+            throw new Error("Network Error")
+        })
+        .then((resp) => {
+            console.log(resp)
+            dispatch(patchUserSuccess(resp))
+        })
+        .catch((err) => {
+            dispatch(patchUserFailure(err.toString()))
+        })
+    }
+}
+
 export const notificationSelector = createSelector(
     state => state.user,
     (user) => {
@@ -267,6 +306,7 @@ export const {
     loginPending, loginFailed, loginSucceeded, 
     logoutSucceeded, logoutPending, logoutFailed,
     deleteNotificationSucceeded, deleteNotificationPending, deleteNotificationFailure,
-    patchFriendRequestSuccess, patchFriendRequestPending, patchFriendRequestFailure
+    patchFriendRequestSuccess, patchFriendRequestPending, patchFriendRequestFailure,
+    patchUserSuccess, patchUserPending, patchUserFailure
 } = userSlice.actions
 export default userSlice.reducer

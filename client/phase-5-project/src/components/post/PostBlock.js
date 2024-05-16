@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux"
 import { patchPost, deletePost, postPostLike, deletePostLike} from "../../features/post-slice/allPosts"
 import { useState } from "react"
 import { useFormik } from "formik"
+import { NavLink } from "react-router-dom"
 
 export default function PostBlock({post}){
 
@@ -14,6 +15,23 @@ export default function PostBlock({post}){
     const dispatch = useDispatch()
     
     const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes, user} = post
+
+    const getModifiedValues = (values, initialValues) => {
+        let modifiedValues = {};
+      
+        if (values) {
+            Object.entries(values).forEach((entry) => {
+            let key = entry[0];
+            let value = entry[1];
+      
+            if (value !== initialValues[key] || (key === "image_uri" && values["image_uri"].length > 0)) {
+                modifiedValues[key] = value;
+            }
+          });
+        }
+      
+        return modifiedValues;
+    };
 
     const liked_posts = () => {
         let posts = []
@@ -46,7 +64,13 @@ export default function PostBlock({post}){
             location: "",
             caption: ""
         },
-        onSubmit: (value) => patch(value)
+        onSubmit: (value) => {
+            console.log(formik.initialValues)
+            const modifiedValue = getModifiedValues(value, formik.initialValues)
+            console.log(modifiedValue)
+            dispatch(patchPost(modifiedValue, id))
+            exitEditMode()
+        }
     })
 
     function onImageChange(e){
@@ -63,11 +87,6 @@ export default function PostBlock({post}){
         }
     }
 
-    function patch(value){
-        dispatch(patchPost(value, id))
-        setEditMode(false)
-    }
-
     function pressLike(){
         const postLikeStatus = isLikedByUser()
         if(postLikeStatus.isLiked){
@@ -80,6 +99,8 @@ export default function PostBlock({post}){
             }))
         }
     }
+
+    console.log(userInfo.id, user_id)
 
     return(
         <div>
@@ -119,7 +140,9 @@ export default function PostBlock({post}){
             :
             <>
                 <img src={_image_src}/>
-                <span>Post By: {user.username}</span>
+                <NavLink to={userInfo.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
+                    <span>Post By: {user.username}</span>
+                </NavLink>
                 <span>{caption}</span>
                 <span>{location}</span>
                 <span>Likes: {liked_posts()}</span>

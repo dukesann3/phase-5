@@ -315,6 +315,7 @@ export function patchPost(value, p_id){
             throw new Error("Network Error")
         })
         .then((resp) => {
+            console.log(resp)
             dispatch(postPatchSuccess(resp))
         })
         .catch((error) => {

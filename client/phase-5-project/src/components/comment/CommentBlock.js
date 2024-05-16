@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useFormik } from "formik"
 import { patchComment, deleteComment, postCommentLike, deleteCommentLike } from "../../features/post-slice/allPosts"
 import { useState } from "react"
+import { NavLink } from "react-router-dom"
 
 export default function CommentBlock({comment}){
 
@@ -79,7 +80,9 @@ export default function CommentBlock({comment}){
                 <>
                     <h6>This is Comment Block</h6>
                     <span>{text}</span>
-                    <span>Comment By: {user.username}</span>
+                    <NavLink to={user.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
+                        <span>Comment By: {user.username}</span>
+                    </NavLink>
                     <span>Likes: {comment_likes.length}</span>
                     <button onClick={() => pressLike()}>Like</button>
                     <span>Created At: {created_at}</span>

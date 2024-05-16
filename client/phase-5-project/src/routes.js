@@ -7,6 +7,8 @@ import PostPage from "./components/post/PostBlock";
 import UserProfilePage from "./components/user/UserProfilePage";
 import Welcome from "./components/Welcome";
 import CreateAccount from "./components/user/CreateAccount";
+import FriendsList from "./components/friend/FriendsList";
+import Profile from "./components/profile/Profile";
 
 // import Tester from "./components/Tester";
 
@@ -41,7 +43,7 @@ const routes = [
                 element: <PostPage />
             },
             {
-                path: '/profile/:userid',
+                path: '/profile',
                 element: <UserProfilePage />
             },
             // {
@@ -51,6 +53,14 @@ const routes = [
             {
                 path: '/create_an_account',
                 element: <CreateAccount />
+            },
+            {
+                path: '/friendslist',
+                element: <FriendsList />
+            },
+            {
+                path: `/user/:userid/profile`,
+                element: <Profile />
             }
         ]   
     }

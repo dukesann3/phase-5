@@ -1,6 +1,7 @@
 import { useSelector, useDispatch } from "react-redux"
 import { sendFriendRequest } from "../../features/user-slice/userList"
 import { useState } from "react"
+import { NavLink } from "react-router-dom"
 
 export default function UseBlock({user}){
 
@@ -20,7 +21,9 @@ export default function UseBlock({user}){
         <>
             <span>First Name: {user.first_name}</span>
             <span>Last Name: {user.last_name}</span>
-            <span>Username: {user.username}</span>
+            <NavLink to={`/user/${user.id}/profile`}>
+                <span>Username: {user.username}</span>
+            </NavLink>
             {
                 sent ?
                 <span>Sent</span>

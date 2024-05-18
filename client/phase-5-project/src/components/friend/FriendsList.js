@@ -23,9 +23,9 @@ function FriendsList(){
                     return (
                         <>
                             <NavLink to={`/user/${f.id}/profile`}>
-                                <FriendBlock key={f.id} friend={f}/>
+                                <FriendBlock key={f.id} friend={f} status={f.status}/>
                             </NavLink>
-                            <button onClick={() => dispatch(unfriend(f.id))}>unfriend</button>
+                            {f.status !== "pending" ? <button onClick={() => dispatch(unfriend(f.id))}>unfriend</button> : null}
                         </>
                     )
                 })

@@ -9,6 +9,7 @@ import Welcome from "./components/Welcome";
 import CreateAccount from "./components/user/CreateAccount";
 import FriendsList from "./components/friend/FriendsList";
 import Profile from "./components/profile/Profile";
+import Settings from "./components/Settings";
 
 // import Tester from "./components/Tester";
 
@@ -61,6 +62,10 @@ const routes = [
             {
                 path: `/user/:userid/profile`,
                 element: <Profile />
+            },
+            {
+                path: '/settings',
+                element: <Settings />
             }
         ]   
     }

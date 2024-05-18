@@ -8,6 +8,7 @@ from configs import api, app, db
 import ipdb
 import urllib.request
 import os
+import shutil
 
 # @app.before_request
 # def check_if_logged_in():
@@ -89,6 +90,29 @@ class CommentLikeNotificationTest(Resource):
     def get(self):
         all_cln = [cln.to_dict() for cln in CommentLikeNotification.query.all()]
         return make_response(all_cln, 200)
+    
+class UserDelete(Resource):
+    def delete(self, user_id):
+        print("user-delete")
+        try:
+            print("A")
+            user_to_delete = User.query.filter(User.id == user_id).first()
+            db.session.delete(user_to_delete)
+            db.session.commit()
+
+            print("B")
+            #essentially logs out the user here
+            session.pop('user_id', default=None)
+            session.pop('n_of_users', default=None)
+
+            print("C")
+            #deletes 
+
+            shutil.rmtree(f'../../client/phase-5-project/public/images/{user_id}_folder', ignore_errors=True)
+            
+            return make_response({"message": "Successfully deleted user"}, 204)
+        except:
+            return make_response({"message": "Could not delete user"}, 404)
 
 #============ For Testing Purposes Only!!! ==================================#
 
@@ -187,6 +211,42 @@ class Users(Resource):
         except:
             return make_response({"message": "Error, could not patch user"}, 404)
 
+    def delete(self, user_id):
+        print("user-delete")
+        try:
+            print("A")
+            user_to_delete = User.query.filter(User.id == user_id).first()
+            db.session.delete(user_to_delete)
+            db.session.commit()
+
+            print("B")
+            #essentially logs out the user here
+            session.pop('user_id', default=None)
+            session.pop('n_of_users', default=None)
+
+            print("C")
+            #deletes 
+
+            shutil.rmtree(f'../client/phase-5-project/public/images/{user_id}_folder', ignore_errors=True)
+            
+            return make_response({"message": "Successfully deleted user"}, 204)
+        except:
+            return make_response({"message": "Could not delete user"}, 404)
+        
+class UserPassword(Resource):
+    def patch(self, user_id):
+        try:
+            response = request.get_json()
+            password = response["password"]
+
+            user = User.query.filter(User.id == user_id).first()
+            user.password_hash = password
+
+            db.session.commit()
+            return make_response({"message": "Password has been updated successfully"}, 200)
+        except:
+            return make_response({"message": "Password cannot be changed"}, 404)
+        
     
 class SpecificUsers(Resource):
     def get(self, id):
@@ -205,7 +265,13 @@ class Friends(Resource):
     def get(self):
         user_id = session['user_id']
         user = User.query.filter(User.id == user_id).first()
-        friends = [friend.to_dict() for friend in user.friends]
+        friends = []
+
+        for friend in user.all_friends:
+            friend_to_add = friend["value"].to_dict()
+            friend_to_add["status"] = friend["status"]
+            friends.append(friend_to_add)
+
         return make_response(friends, 200)
     
 class FriendsEdit(Resource):
@@ -675,6 +741,7 @@ api.add_resource(UserTest, '/all_users')
 api.add_resource(CreateAnAccount, '/create_an_account')
 api.add_resource(onUserListRefresh, "/onrefresh")
 api.add_resource(FriendRequest, "/friendships/send_request")
+api.add_resource(UserPassword, "/users/password/<int:user_id>")
 
 api.add_resource(Friends, "/user/friends")
 api.add_resource(FriendsEdit, "/user/friends/<int:f_id>")
@@ -708,6 +775,7 @@ api.add_resource(CommentTest, '/comment_test')
 api.add_resource(PostLikeNotificationsTest, '/pln_test')
 api.add_resource(CommentNotificationsTest, '/cn_test')
 api.add_resource(CommentLikeNotificationTest, '/cln_test')
+api.add_resource(UserDelete, '/user_test/delete/<int:user_id>')
 
 if __name__ == "__main__":
     app.run(port=5555, debug=True)

@@ -287,6 +287,7 @@ class User(db.Model, SerializerMixin):
     first_name = db.Column(db.String, nullable=False)
     last_name = db.Column(db.String, nullable=False)
     username = db.Column(db.Integer, nullable=False, unique=True)
+    isDark = db.Column(db.Boolean, default=False)
     _password_hash = db.Column(db.String, nullable=False)
     _image_src = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=datetime.now())
@@ -373,6 +374,21 @@ class User(db.Model, SerializerMixin):
                 pending_friends.append(friendship)
         
         return pending_friends
+    
+    @hybrid_property
+    def all_friends(self):
+        all_friends = []
+        for friendship in self.friendships:
+            if not self.id == friendship.reciever_id:
+                friend = {'value': friendship.reciever, 'status': friendship.status}
+                print(friend)
+                all_friends.append(friend)
+            elif not self.id == friendship.sender_id:
+                friend = {'value': friendship.sender, 'status': friendship.status}
+                print(friend)
+                all_friends.append(friend)
+
+        return all_friends
     
     
     @hybrid_method

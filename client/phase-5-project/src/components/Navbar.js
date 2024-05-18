@@ -9,6 +9,8 @@ export function Navbar(){
     const loggedInUser = useSelector((store) => store.user)
     const navigate = useNavigate()
 
+    const user_id = loggedInUser.value.id
+
     return(
         <>
             {
@@ -20,6 +22,8 @@ export function Navbar(){
                     }}>Logout</button>
                     <NavLink to={'/profile'}>Profile</NavLink>
                     <NavLink to={'/friendslist'}>Friends</NavLink>
+                    <NavLink to={`/home/${user_id}`}>Home</NavLink>
+                    <NavLink to={'/settings'}>Settings</NavLink>
                 </nav>
                 :
                 <nav className="not-loggedIn">

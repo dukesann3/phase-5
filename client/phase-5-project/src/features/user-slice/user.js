@@ -1,6 +1,7 @@
 import { createSlice, current } from '@reduxjs/toolkit'
 import { userLogout } from './userList'
 import { createSelector } from 'reselect'
+import { ReactReduxContext } from 'react-redux'
 
 //specify deleted notification id in CRUD operation please
 const noteTypeToURLMapper = [
@@ -30,7 +31,9 @@ export const userSlice = createSlice({
         logoutErrorMessage: "",
         deleteNotificationMessage: "",
         friendRequestResponseMessage: "",
-        patchUserErrorMessage: ""
+        patchUserErrorMessage: "",
+        deleteUserErrorMessage: "",
+        patchUserPwdErrorMessage: ""
     },
     reducers: {
         //LOGIN==============================================
@@ -93,7 +96,6 @@ export const userSlice = createSlice({
                 }
             }
 
-            
             state.value = newState
             state.deleteNotificationMessage = ""
         },
@@ -135,8 +137,29 @@ export const userSlice = createSlice({
         },
         patchUserFailure: (state, action) => {
             state.patchUserErrorMessage = action.payload
-        } 
-    }
+        },
+        //USER DELETE========================================================
+        deleteUserSuccess: (state) => {
+            state.value = {}
+            state.deleteUser = ""
+        },
+        deleteUserPending: (state) => {
+            state.deleteUserErrorMessage = ""
+        },
+        deleteUserFailure: (state, action) => {
+            state.deleteUserErrorMessage = action.payload
+        },
+        //EDIT USER PASSWORD==================================================
+        patchUserPwdSuccess: (state) => {
+            state.patchUserPwdErrorMessage = ""
+        },
+        patchUserPwdPending: (state) => {
+            state.patchUserPwdErrorMessage = ""
+        },
+        patchUserPwdFailure: (state, action) => {
+            state.patchUserErrorMessage = action.payload
+        }
+    }   
 })
 
 //thunk action creators and thunk functions
@@ -281,6 +304,56 @@ export function patchUser(user_id, value){
     }
 }
 
+export function deleteUser(user_id){
+    return async (dispatch, getState) => {
+        dispatch(deleteUserPending())
+
+        await fetch(`/users/${user_id}`, {
+            method: "DELETE",
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then((r) => {
+            if(r.ok){
+                dispatch(deleteUserSuccess())
+                //see if I have to add anything at the end
+                return
+            }
+            else if(r.status === 404) throw new Error("Unable to delete user")
+            throw new Error("Network Error")
+        })
+        .catch((err) => {
+            dispatch(deleteUserFailure(err.toString()))
+        })
+    }
+}
+
+export function patchUserPwd(user_id, new_password){
+    return async (dispatch, getState) => {
+        dispatch(patchUserPwdPending())
+
+        fetch(`/users/password/${user_id}`, {
+            method: "PATCH",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({password: new_password})
+        })
+        .then((r) => {
+            if(r.ok) return r.json()
+            else if(r.status === 404) throw new Error("Password could not be changed")
+            throw new Error("Network Error")
+        })
+        .then((r) => {
+            dispatch(patchUserPwdSuccess())
+        })
+        .catch((err) => {
+            dispatch(patchUserPwdFailure(err.toString()))
+        })
+    }
+}
+
 export const notificationSelector = createSelector(
     state => state.user,
     (user) => {
@@ -307,6 +380,8 @@ export const {
     logoutSucceeded, logoutPending, logoutFailed,
     deleteNotificationSucceeded, deleteNotificationPending, deleteNotificationFailure,
     patchFriendRequestSuccess, patchFriendRequestPending, patchFriendRequestFailure,
-    patchUserSuccess, patchUserPending, patchUserFailure
+    patchUserSuccess, patchUserPending, patchUserFailure,
+    deleteUserSuccess, deleteUserPending, deleteUserFailure,
+    patchUserPwdSuccess, patchUserPwdPending, patchUserPwdFailure
 } = userSlice.actions
 export default userSlice.reducer

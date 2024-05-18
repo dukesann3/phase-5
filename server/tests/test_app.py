@@ -5,6 +5,7 @@ from flask import Flask, url_for
 import flask
 import ipdb
 import json
+import os
 
 def reset_all():
     User.query.delete()
@@ -806,6 +807,48 @@ class TestLogAndFriendRequest:
             assert(len(rando_cln) == 0)
             assert(len(commenter_cln) == 2)
             assert(len(poster_cln) == 2)
+
+    def test_user_delete(self):
+        '''Checks if user is removed and logged out
+        after deletion. And user profile picture and post pictures
+        directory must be deleted'''
+        
+        with app.app_context():
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            db.session.add(u1)
+            db.session.commit()
+
+        with app.test_client() as client:
+
+            user = client.post('/login', json={
+                "username": "a",
+                "password": "12345"
+            })
+            user_id = user.json['id']
+
+            assert(user.status_code == 200)
+            assert(user_id == 1)
+
+            delete_user = client.delete(f"/user_test/delete/{user_id}")
+            assert(delete_user.status_code == 204)
+
+            try:
+                user_id = flask.session.get('user_id')
+                n_of_users = flask.session.get('n_of_users')
+                print(user_id, n_of_users)
+            except:
+                deletedUser = User.query.filter(User.id == user_id).first()
+                assert(deletedUser is None)
+                assert(True)
+
+            user_pictures_path = f"../client/phase-5-project/public/images/{user_id}_folder"
+            assert(os.path.exists(user_pictures_path) == False)
+
+
+
+
 
 
 

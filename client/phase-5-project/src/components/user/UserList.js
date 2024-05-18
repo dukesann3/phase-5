@@ -50,9 +50,7 @@ export default function UserList(){
                 <>
                     {userList.value.map((user) => {
                         return (
-                            <NavLink to={`/user/${user.id}/profile`}>
-                                <UserBlock key={user.id} user={user}/>
-                            </NavLink>
+                            <UserBlock key={`${user.id}_${user.username}`} user={user}/>
                         )
                     })}
                 </>

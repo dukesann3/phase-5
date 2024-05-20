@@ -4,9 +4,7 @@ from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from datetime import datetime
 from configs import bcrypt, db
-import ipdb
-import urllib.request
-import os
+
 
 class Post(db.Model, SerializerMixin):
     __tablename__ = "posts"
@@ -410,14 +408,8 @@ class User(db.Model, SerializerMixin):
             raise ValueError("Response must be either accepted or rejected")
     
         f = Friendship.query.filter(Friendship.id == friend_request_id).first()
-        print(f)
         n = FriendRequestNotification.query.filter(FriendRequestNotification.sender_id == f.sender_id, FriendRequestNotification.reciever_id == self.id).first()
-        print(n)
-        #must delete opposite friend request it is a two way friend request before accepting or rejecting
-        print("reciever id", f.reciever_id)
-        print("sender id", f.sender_id)
         oppo_f = Friendship.query.filter(Friendship.sender_id == f.reciever_id, Friendship.reciever_id == f.sender_id).first()
-        print(oppo_f)
         oppo_n = FriendRequestNotification.query.filter(FriendRequestNotification.sender_id == f.reciever_id, FriendRequestNotification.reciever_id == f.sender_id).first()
         if oppo_f:
             if not oppo_f.status == response:
@@ -431,20 +423,10 @@ class User(db.Model, SerializerMixin):
             db.session.delete(n)
             db.session.commit()
         elif response == "rejected":
-            print("in rejected")
             db.session.delete(n)
-            print("A")
             db.session.commit()
-            print("B")
             db.session.delete(f)
-            print("C")
             db.session.commit()
-            print("D")
-
-            
-    # serialize_rules = ("-friendships.reciever","-friendships.sender", "-notifications.notification_sender"
-    #                    , "-notifications.notification_reciever", "-notifications.friendship", "-friendships.notification"
-    #                    , "-posts.user", "-posts.comments","-comments.user","-comments.post")
 
     serialize_rules = ("-comments", "-posts", "-_password_hash",
                         "-post_like", "-comment_like",

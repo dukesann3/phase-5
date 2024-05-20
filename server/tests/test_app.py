@@ -1,5 +1,5 @@
 from models import User, Friendship, FriendRequestNotification, Post, PostLike, PostLikeNotification, Comment, CommentLike, CommentNotification, CommentLikeNotification
-from configs import db
+from configs import db, cache
 from app import app
 from flask import Flask, url_for
 import flask
@@ -18,6 +18,7 @@ def reset_all():
     CommentLike.query.delete()
     CommentNotification.query.delete()
     CommentLikeNotification.query.delete()
+    cache.clear()
     db.session.commit()
 
 class TestLogAndFriendRequest:
@@ -845,6 +846,237 @@ class TestLogAndFriendRequest:
 
             user_pictures_path = f"../client/phase-5-project/public/images/{user_id}_folder"
             assert(os.path.exists(user_pictures_path) == False)
+
+    def test_search_bar_order(self):
+        '''When searching, the order in which the search result
+        comes is that friends come before strangers. The only 
+        exception being, if the search query is directly equal 
+        to a user in the user database, then that user comes on top'''
+
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            user = client.post('/login', json={
+                "username": "aa",
+                "password": "12345"
+            })
+            user_id = user.json['id']
+
+            assert(user.status_code == 200)
+            assert(user_id == 2)
+
+            search_results = client.post('/user/search', json={
+                "search_query": "a"
+            })
+
+            assert(search_results.status_code == 200)
+            assert(search_results.json[0]["username"] == "a")
+            assert(search_results.json[1]["username"] == "aaa")
+
+    def test_search_bar_delete(self):
+        '''When deleting a letter from the search bar,
+        the search algorithm will have to start all over again
+        instead of using the cached value for the search'''
+
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            user = client.post('/login', json={
+                "username": "aa",
+                "password": "12345"
+            })
+            user_id = user.json['id']
+
+            assert(user.status_code == 200)
+            assert(user_id == 2)
+
+            search_results = client.post('/user/search', json={
+                "search_query": "aaaa"
+            })
+
+            assert(search_results.status_code == 200)
+            assert(search_results.json[0]["username"] == "aaaa")
+
+            search_results = client.post('/user/search', json={
+                "search_query": "aaa"
+            })
+
+            assert(search_results.status_code == 200)
+            assert(search_results.json[0]["username"] == "aaa")
+            assert(search_results.json[1]["username"] == "aaaa")
+
+    def test_search_bar_continue_search(self):
+        '''When continuing a search on the search bar without
+        deleting anything, it'll use the cached search results to
+        obtain a more thorough result'''
+
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            user = client.post('/login', json={
+                "username": "aa",
+                "password": "12345"
+            })
+            user_id = user.json['id']
+
+            assert(user.status_code == 200)
+            assert(user_id == 2)
+
+            search_results = client.post('/user/search', json={
+                "search_query": "aa"
+            })
+
+            assert(search_results.status_code == 200)
+
+            search_results = client.post('/user/search', json={
+                "search_query": "aaa"
+            })
+
+            assert(search_results.status_code == 200)
+            assert(search_results.json[0]["username"] == "aaa")
+            assert(search_results.json[1]["username"] == "aaaa")
+
+    def test_search_bar_no_results(self):
+        '''When there are no results, it will
+        give back an error message'''
+
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            user = client.post('/login', json={
+                "username": "aa",
+                "password": "12345"
+            })
+            user_id = user.json['id']
+
+            assert(user.status_code == 200)
+            assert(user_id == 2)
+
+            search_results = client.post('/user/search', json={
+                "search_query": "bbl drizzy"
+            })
+
+            assert(search_results.status_code == 402)
+
+    def test_no_search_query(self):
+        '''When there are no search queries, it will
+        give back an error message'''
+
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            user = client.post('/login', json={
+                "username": "aa",
+                "password": "12345"
+            })
+            user_id = user.json['id']
+
+            assert(user.status_code == 200)
+            assert(user_id == 2)
+
+            search_results = client.post('/user/search', json={
+                "search_query": ""
+            })
+
+            assert(search_results.status_code == 401)
+
+
+    
+
+
+
+
+
+            
+        
+            
+        
+
 
 
 

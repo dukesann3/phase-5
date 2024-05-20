@@ -3,6 +3,7 @@ import { fetchUserList, unLoadErrorMsg } from "../../features/user-slice/userLis
 import { useParams, NavLink } from "react-router-dom"
 import { useEffect } from "react"
 import UserBlock from "./UserBlock"
+import { fetchUser } from "../../features/user-slice/user"
 
 export default function UserList(){
 
@@ -44,7 +45,12 @@ export default function UserList(){
 
     return(
         <>
-            <button onClick={() => dispatch(fetchUserList(user_id))}>Show Users</button>
+            <input 
+            type="text"
+            placeholder="search username"
+            onChange={(e) => dispatch(fetchUserList({search_query: e.target.value}))}
+            />
+            
             {
                 userList.value.length > 0 ?
                 <>

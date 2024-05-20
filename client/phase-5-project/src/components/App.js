@@ -9,10 +9,7 @@ function App() {
   const dispatch = useDispatch()
 
   const loggedInUser = useSelector((store) => store.user.value)
-  const userList = useSelector((store) => store.userList.value)
   const friends = useSelector((store) => store.friends.value)
-
-  console.log(loggedInUser, userList, friends)
 
   useEffect(()=>{
     dispatch(checkSession())

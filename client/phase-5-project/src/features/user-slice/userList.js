@@ -19,6 +19,7 @@ export const userListSlice = createSlice({
         },
         fetchFailure: (state, action) => {
             state.errorMessage = action.payload
+            console.log(action.payload)
         },
         userLogout: (state) => {
             state.value = []
@@ -44,24 +45,31 @@ export const userListSlice = createSlice({
         },
         postFRequestFailure: (state, action) => {
             state.friendRequestErrorMessage = action.payload
+        },
+        //no results from userlist
+        noResults: (state) => {
+            state.value = []
         }
     }
 })
 
-export function fetchUserList(user_id){
+export function fetchUserList(searchQuery){
     return async (dispatch, getState) => {
-        fetch(`/users/${user_id}`, {
-            method: "GET",
+        fetch(`/user/search`, {
+            method: "POST",
             headers: {
                 'Content-Type': 'application/json',
             },
-            //need this for app.py to read cookies
-            credentials: "same-origin"
+            body: JSON.stringify(searchQuery)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 401) throw new Error("Error, could not fetch users")
-            throw new Error("Network Error")
+            return await r.json().then(err => {
+                if(r.status === 401 || r.status === 402){
+                    dispatch(noResults())
+                }
+                throw new Error(err.error)
+            })
         })
         .then((r) => {
             dispatch(fetchSuccess(r))
@@ -98,10 +106,9 @@ export function sendFriendRequest(value){
 }
 
 
-
 export const { 
     fetchSuccess, fetchPending, fetchFailure, 
     userLogout, unLoadErrorMsg,
-    postFRequestSuccess, postFRequestPending, postFRequestFailure
+    postFRequestSuccess, postFRequestPending, postFRequestFailure, noResults
  } = userListSlice.actions
 export default userListSlice.reducer

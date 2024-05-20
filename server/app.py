@@ -4,17 +4,28 @@ from flask import jsonify, request, make_response, session
 from flask_restful import Resource
 from sqlalchemy import and_, or_, not_
 from models import User, Friendship, FriendRequestNotification, Post, Comment, PostLike, CommentLike, PostLikeNotification, CommentLikeNotification, CommentNotification
-from configs import api, app, db
+from configs import api, app, db, cache
 import ipdb
 import urllib.request
 import os
 import shutil
 
-# @app.before_request
-# def check_if_logged_in():
-#     if not session['user_id'] and request.endpoint != 'check_session' :
-#         return {'error': 'Unauthorized'}, 401
+#============= Error Handling ==============================================#
 
+class NoSearchResultsError(Exception):
+    def __init__(self, message="No results found"):
+        self.message = message
+        super().__init__(self.message)
+
+class NoSearchQueryError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+class NetworkError(Exception):
+    def __init__(self, message="Network Error"):
+        self.message = message
+        super().__init__(self.message)
 
 #============ For Testing Purposes Only!!! ==================================#
 
@@ -95,24 +106,34 @@ class UserDelete(Resource):
     def delete(self, user_id):
         print("user-delete")
         try:
-            print("A")
             user_to_delete = User.query.filter(User.id == user_id).first()
             db.session.delete(user_to_delete)
             db.session.commit()
-
-            print("B")
-            #essentially logs out the user here
             session.pop('user_id', default=None)
             session.pop('n_of_users', default=None)
-
-            print("C")
-            #deletes 
-
             shutil.rmtree(f'../../client/phase-5-project/public/images/{user_id}_folder', ignore_errors=True)
-            
             return make_response({"message": "Successfully deleted user"}, 204)
         except:
             return make_response({"message": "Could not delete user"}, 404)
+        
+class TestCreateAnAccount(Resource):
+    def post(self):
+        response = request.get_json()
+        first_name = response["first_name"]
+        last_name = response["last_name"]
+        username = response["username"]
+        # image_uri = response["image_uri"]
+
+        try:
+            new_user = User(first_name=first_name,
+                            last_name=last_name,
+                            username=username)
+            new_user.password_hash = response["password"]
+            db.session.add(new_user)
+            db.session.commit()
+            return make_response(new_user.to_dict(), 200)
+        except:
+            return make_response({"message": "Error, new user could not be made"}, 403)
 
 #============ For Testing Purposes Only!!! ==================================#
 
@@ -121,13 +142,11 @@ class Login(Resource):
         print("login-get")
         response = request.get_json()
         potential_user = User.query.filter(User.username == response["username"]).first()
-        print(potential_user)
         
         try:
             if potential_user.authenticate(response["password"]):
                 session["user_id"] = potential_user.id
                 session["n_of_users"] = 0
-
                 return make_response(potential_user.to_dict(), 200)
         except:
             return make_response({"message": "Error, could not find username or password in database"}, 404)
@@ -137,7 +156,7 @@ class Logout(Resource):
         print('logout-delete')
         session.pop('user_id', default=None)
         session.pop('n_of_users', default=None)
-
+        cache.clear()
         return make_response({"message": "Logout successful"}, 204)
     
 class CheckSession(Resource):
@@ -153,39 +172,6 @@ class CheckSession(Resource):
             return make_response({"message": err}, 404)
 
 class Users(Resource):
-    def get(self, user_id):
-        print('users-get')
-        n_of_users_per_click = 3
-        loggedInUser = User.query.filter(User.id == user_id).first()
-
-        try:
-            if len(User.query.all()) > session["n_of_users"]:
-                session["n_of_users"] = session["n_of_users"] + n_of_users_per_click
-            elif len(User.query.all()) <= session["n_of_users"]:
-                raise ValueError("Exceeded the amount of user requests")
-            
-            n_of_users = session["n_of_users"]
-            users = []
-            friendships = loggedInUser.friendships
-            f_sender_ids = [f.sender_id for f in friendships]
-            f_reciever_ids = [f.reciever_id for f in friendships]
-
-            for user in User.query.all():
-                if user.id == loggedInUser.id or (user.id in f_sender_ids or user.id in f_reciever_ids):
-                    continue
-        
-                users.append(user)
-                
-            users_dict = [user.to_dict() for user in users]
-            users_dict_return = users_dict[:n_of_users]
-
-            return make_response(users_dict_return, 200)
-
-        except ValueError as error:
-            return make_response({"message": f"{error}"}, 401)
-        except:
-            return make_response({"message": "Error, could not fetch users"}, 402)
-
     def patch(self, user_id):
         print("user-patch")
         response = request.get_json()
@@ -214,21 +200,12 @@ class Users(Resource):
     def delete(self, user_id):
         print("user-delete")
         try:
-            print("A")
             user_to_delete = User.query.filter(User.id == user_id).first()
             db.session.delete(user_to_delete)
             db.session.commit()
-
-            print("B")
-            #essentially logs out the user here
             session.pop('user_id', default=None)
             session.pop('n_of_users', default=None)
-
-            print("C")
-            #deletes 
-
             shutil.rmtree(f'../client/phase-5-project/public/images/{user_id}_folder', ignore_errors=True)
-            
             return make_response({"message": "Successfully deleted user"}, 204)
         except:
             return make_response({"message": "Could not delete user"}, 404)
@@ -238,28 +215,81 @@ class UserPassword(Resource):
         try:
             response = request.get_json()
             password = response["password"]
-
             user = User.query.filter(User.id == user_id).first()
             user.password_hash = password
-
             db.session.commit()
             return make_response({"message": "Password has been updated successfully"}, 200)
         except:
             return make_response({"message": "Password cannot be changed"}, 404)
-        
-    
-class SpecificUsers(Resource):
-    def get(self, id):
-        print('specificusers-get')
-        try:
-            user = User.query.filter(User.id == id).first().to_dict()
-            print(user)
-            return make_response(user, 200)
-        except:
-            return make_response({"message": f"Could not find user with ID: {id}"}, 404)
-        
+
+class UserSearch(Resource):
     def post(self):
-        pass
+        try:
+            response = request.get_json()
+            search_query = response["search_query"]
+            if not search_query:
+                raise NoSearchQueryError("There needs to be a search query")
+            
+            search_query_w_wildcard = search_query + "%"
+            previous_search_results = cache.get('search_results')
+            previous_search_query = cache.get('search_query')
+            logged_in_user = User.query.filter(User.id == session["user_id"]).first()
+            logged_in_user_friends = logged_in_user.friends
+
+            #first time searching here and when user deletes a letter from the search query
+            if (not previous_search_results and not previous_search_query and search_query) or \
+                (len(previous_search_query) > len(search_query)):
+
+                filtered_users = [user for user in User.query.filter(User.username.like(search_query_w_wildcard)).all()
+                                  if user not in logged_in_user_friends]
+                search_results = []
+
+                for friend in logged_in_user_friends:
+                    if friend.username == search_query:
+                        continue
+                    elif search_query.lower() in friend.username.lower():
+                        search_results.append(friend)
+
+                for user in filtered_users:
+                    if user == logged_in_user or user.username == search_query:
+                        continue
+                    else:
+                        search_results.append(user)
+
+                combined = filtered_users + logged_in_user_friends
+                combined_filtered = [user for user in combined if user != logged_in_user]
+
+                for user in combined_filtered:
+                    if user.username == search_query:
+                        search_results.insert(0, user)
+
+                search_results = [result.to_dict() for result in search_results]
+                cache.set('search_results', search_results, timeout=60)
+                cache.set('search_query', search_query, timeout=60)
+                if len(search_results) == 0:
+                    raise NoSearchResultsError()
+
+                return make_response(search_results, 200)
+
+            elif len(previous_search_query) < len(search_query) and previous_search_results:
+                print("am I in here?")
+                search_results = [user for user in previous_search_results if search_query in user["username"]]
+                cache.set('search_results', search_results, timeout=60)
+                cache.set('search_query', search_query, timeout=60)
+                if len(search_results) == 0:
+                    raise NoSearchResultsError()
+
+                return make_response(search_results, 200)
+            elif not search_query:
+                raise ValueError("Search query is blank. Cannot search")
+            else:
+                raise NoSearchResultsError()
+        except ValueError as e:
+            return make_response(jsonify({"error": str(e)}), 403)
+        except NoSearchResultsError as e:
+            return make_response(jsonify({"error": str(e)}), 402)
+        except NoSearchQueryError as e:
+            return make_response(jsonify({"error": str(e)}), 401)
 
 class Friends(Resource):
     def get(self):
@@ -280,15 +310,11 @@ class FriendsEdit(Resource):
         user_id = session["user_id"]
         friend_id = f_id
         try:
-            print(f_id)
             friendship_to_delete = Friendship.query.filter(or_(
                 and_(Friendship.reciever_id == user_id, Friendship.sender_id == friend_id),
                 and_(Friendship.sender_id == user_id, Friendship.reciever_id == friend_id)
             )).first()
-            print("huh?")
-            print(friendship_to_delete)
             db.session.delete(friendship_to_delete)
-            print("yeyeye")
             db.session.commit()
             return make_response({"message": "Friend deleted successfully"},200)
         except:
@@ -303,14 +329,9 @@ class FriendRequest(Resource):
         reciever_id = int(response["reciever_id"])
 
         try:
-            print("A")
             requester = User.query.filter(User.id == requester_id).first()
-            print("B")
             requester.send_friend_request(reciever_id)
-            print("C")
             created_request = Friendship.query.filter(Friendship.sender_id == requester_id, Friendship.reciever_id == reciever_id).first().to_dict()
-            print("D")
-            print(created_request)
             return make_response(created_request, 200)
         except:
             return make_response({"message": "Either the sender or reciever of the friend request does not exist"}, 404)
@@ -323,29 +344,18 @@ class FriendRequest(Resource):
         try:
             f = Friendship.query.filter(Friendship.id == friend_request_id).first()
             friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
-            print(f)
-            print(friend_request_id)
-            print(friend_request_reciever)
             friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
-            print("B")
             if friend_request_response == "accepted":
                 updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
-                print("C")
-                print(updated_friend_request)
                 return make_response(updated_friend_request, 200)
             elif friend_request_response == "rejected":
-                print("D")
-                print("rejected")
                 return make_response({"message": "Successfully rejected friend request!"}, 200)     
             else:
-                print("E")
                 raise ValueError("Friend request response must be either accepted or rejected")
         except ValueError as err:
             return make_response({"message": err}, 400)
         except:
             return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
-        
-
         
 class Posts(Resource):
     def get(self):
@@ -362,13 +372,10 @@ class Posts(Resource):
             
             sorted_post_list = sorted(post_list, key=lambda post: post.updated_at)
             sorted_post_list_to_dict = [post.to_dict() for post in sorted_post_list]
-
             return make_response(sorted_post_list_to_dict, 200)
-        
         except:
             return make_response({"message": "Error, could not retrieve all posts"}, 404)
         
-
     def post(self):
         print('post-post')
         response = request.get_json()
@@ -415,33 +422,23 @@ class PostEdit(Resource):
         
     def patch(self, p_id):
         response = request.get_json()
-
         try:
-            print("A")
             post_to_patch = Post.query.filter(Post.id == p_id).first()
             poster_id = post_to_patch.user_id
             post_id = post_to_patch.id
-            print("B")
             all_attr = post_to_patch.__dict__
 
             for attr in all_attr:
                 if response.get(attr):
                     setattr(post_to_patch, attr, response[attr])
-            print("C")
             if response.get("image_uri"):
                 image_uri = response["image_uri"]
-                print("D")
                 resp = urllib.request.urlopen(image_uri)
-                print("closer")
                 new_post_path = f'../client/phase-5-project/public/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
-                print("here?")
                 src = f'/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
-                print("D.2")
                 with open(new_post_path, 'wb') as f:
                     f.write(resp.file.read())
-                    print("D.3")
                 setattr(post_to_patch, "_image_src", src)
-            print("E")
             db.session.commit()
             return make_response(post_to_patch.to_dict(), 200)
         except:
@@ -480,26 +477,8 @@ class CreateAnAccount(Resource):
             return make_response(new_user.to_dict(), 200)
         except:
             return make_response({"message": "Error, new user could not be made"}, 404)
-        
-class TestCreateAnAccount(Resource):
-    def post(self):
-        response = request.get_json()
-        first_name = response["first_name"]
-        last_name = response["last_name"]
-        username = response["username"]
-        # image_uri = response["image_uri"]
 
-        try:
-            new_user = User(first_name=first_name,
-                            last_name=last_name,
-                            username=username)
-            new_user.password_hash = response["password"]
-            db.session.add(new_user)
-            db.session.commit()
-            return make_response(new_user.to_dict(), 200)
-        except:
-            return make_response({"message": "Error, new user could not be made"}, 403)
-        
+#repurpose later
 class onUserListRefresh(Resource):
     def delete(self):
         session['n_of_users'] = 0
@@ -593,11 +572,8 @@ class PostLikes(Resource):
                     post_id=post_id,
                     text=f"{sender_username} liked your post"
                 )
-
                 db.session.add(post_like_notification)
                 db.session.commit()
-                print("B")
-
             return make_response(post_like.to_dict(), 200)
         except:
             return make_response({"message": "Error, post could not be liked"}, 404)
@@ -724,24 +700,13 @@ class PostLikeNotifications(Resource):
         except:
             return make_response({"message": "Error, post like notification could not be deleted"}, 404)
 
-# class FriendRequestNotifications(Resource):
-#     def delete(self, frn_id):
-#         try:
-#             frn = FriendRequestNotification.query.filter_by(id=frn_id).first()
-#             db.session.delete(frn)
-#             db.session.commit()
-#             return make_response({"message": "Friend request notification deleted successfully"}, 204)
-#         except:
-#             return make_response({"message": "Error, friend request notification could not be deleted"}, 404)
-
-
 api.add_resource(Users, "/users/<int:user_id>")
-api.add_resource(SpecificUsers, "/users/<int:id>")
 api.add_resource(UserTest, '/all_users')
 api.add_resource(CreateAnAccount, '/create_an_account')
 api.add_resource(onUserListRefresh, "/onrefresh")
 api.add_resource(FriendRequest, "/friendships/send_request")
 api.add_resource(UserPassword, "/users/password/<int:user_id>")
+api.add_resource(UserSearch, "/user/search")
 
 api.add_resource(Friends, "/user/friends")
 api.add_resource(FriendsEdit, "/user/friends/<int:f_id>")
@@ -755,7 +720,6 @@ api.add_resource(Posts, "/posts", endpoint="check_session")
 api.add_resource(PostEdit, "/post/<int:p_id>")
 api.add_resource(PostLikes, "/post/like")
 api.add_resource(PostDislike, "/post/like/<int:post_like_id>")
-# api.add_resource(PostLikeNotifications, "/post/like/notification/<int:pln_id>")
 
 api.add_resource(Comments, '/comment')
 api.add_resource(CommentNotifications, '/comment/notification/<int:cn_id>')

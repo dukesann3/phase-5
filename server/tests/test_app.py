@@ -142,6 +142,13 @@ class TestLogAndFriendRequest:
             
             assert(resp2.status_code == 200)
             reciever_id = resp2.json['id']
+
+            resp = client.post('/login', json={
+                "username": "a",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
             
             client.post('/friendships/send_request', json={
                 "sender_id": sender_id,
@@ -182,6 +189,13 @@ class TestLogAndFriendRequest:
             
             assert(resp2.status_code == 200)
             reciever_id = resp2.json['id']
+
+            resp = client.post('/login', json={
+                "username": "a",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
             
             client.post('/friendships/send_request', json={
                 "sender_id": sender_id,
@@ -220,6 +234,13 @@ class TestLogAndFriendRequest:
             
             assert(resp2.status_code == 200)
             reciever_id = resp2.json['id']
+
+            resp = client.post('/login', json={
+                "username": "a",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
             
             client.post('/friendships/send_request', json={
                 "sender_id": sender_id,
@@ -271,10 +292,27 @@ class TestLogAndFriendRequest:
             
             #sending friend requests here-------------------------------
 
+            resp = client.post('/login', json={
+                "username": "a",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
+
             f_req = client.post('/friendships/send_request', json={
                 "sender_id": sender_id,
                 "reciever_id": reciever_id
             })
+
+            logout = client.delete('/logout')
+            assert(logout.status_code == 204)
+
+            resp = client.post('/login', json={
+                "username": "b",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
 
             f_req_oppo = client.post('/friendships/send_request', json={
                 "sender_id": reciever_id,
@@ -339,11 +377,28 @@ class TestLogAndFriendRequest:
             
             #sending friend requests here-------------------------------
 
+            resp = client.post('/login', json={
+                "username": "a",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
+
             f_req = client.post('/friendships/send_request', json={
                 "sender_id": sender_id,
                 "reciever_id": reciever_id
             })
             f_req_id = f_req.json['id']
+
+            logout = client.delete('/logout')
+            assert(logout.status_code == 204)
+
+            resp = client.post('/login', json={
+                "username": "b",
+                "password": "12345"
+            })
+
+            assert(resp.status_code == 200)
 
             f_req_oppo = client.post('/friendships/send_request', json={
                 "sender_id": reciever_id,
@@ -1024,7 +1079,7 @@ class TestLogAndFriendRequest:
                 "search_query": "bbl drizzy"
             })
 
-            assert(search_results.status_code == 402)
+            assert(search_results.status_code == 400)
 
     def test_no_search_query(self):
         '''When there are no search queries, it will
@@ -1063,7 +1118,71 @@ class TestLogAndFriendRequest:
                 "search_query": ""
             })
 
-            assert(search_results.status_code == 401)
+            assert(search_results.status_code == 400)
+
+    def test_error_check_session(self):
+        '''User should not be able to perform certain
+        requests such as posting a new post without
+        logging in.'''
+
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            try:
+                client.post('/user/search', json={
+                    "search_query": ""
+                })
+                assert(False)
+            except Exception as e:
+                assert(e.code == "AUTHZ-001")
+
+    def test_poop(self):
+        with app.app_context():
+            #user 'a' is friends with 'b'. C is not.
+            reset_all()
+            u1 = User(first_name="a", last_name="a", username="a")
+            u1.password_hash= "12345"
+            u2 = User(first_name="b", last_name="b", username="aa")
+            u2.password_hash = "12345"
+            u3 = User(first_name="c", last_name="c", username="aaa")
+            u3.password_hash = "12345"
+            u4 = User(first_name="d", last_name="d", username="aaaa")
+            u4.password_hash = "12345"
+
+            db.session.add_all([u1,u2,u3,u4])
+            db.session.commit()
+
+            f = u2.send_friend_request(u3.id)
+            u3.respond_to_friend_request(f.id, "accepted")
+
+        with app.test_client() as client:
+
+            resp = client.post('login', json={
+                    "username": "",
+                    "password": ""
+            })
+            print(resp)
+
+                
+
+
 
 
     

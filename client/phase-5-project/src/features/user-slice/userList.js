@@ -31,11 +31,12 @@ export const userListSlice = createSlice({
         postFRequestSuccess: (state, action) => {
             //this is more of a patch, but it is what it is
             const currentState = state.value
-            const newState = currentState.filter((user) => {
+            const newState = currentState.map((user) => {
                 if(action.payload.reciever_id === user.id){
-                    return false
+                    user.isPending = true
+                    return
                 }
-                return true
+                return
             })
             state.value = newState
             state.friendRequestErrorMessage = ""

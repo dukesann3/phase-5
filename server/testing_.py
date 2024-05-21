@@ -1,9 +1,14 @@
 
 
-post_list = [{"updated_at": "2024-04-25 14:16:22.364264",
-              "poop": "69"},{"updated_at": "2024-05-02 19:41:36.468253",
-                             "poop": "900"}]
+def testing():
+    try:
+        try:
+            raise ValueError("a")
+        except:
+            raise ValueError("hi")
+        
+    except ValueError as e:
+        print("poo", e)
 
-sorted_post_list = sorted(post_list, key=lambda post: post["updated_at"])
+testing()
 
-print(sorted_post_list)

@@ -15,6 +15,7 @@ export default function PostList(){
     // )
 
     const posts = useSelector(state => state.allPost.value)
+    console.log(posts)
     const dispatch = useDispatch()
 
     useEffect(()=>{

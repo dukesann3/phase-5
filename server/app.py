@@ -9,6 +9,8 @@ import ipdb
 import urllib.request
 import os
 import shutil
+from errors import raise_error, NetworkError, ValidationError, AuthenticationError, AuthorizationError, DatabaseError, error_to_dict, network_error
+from image import image_to_base64_uri
 
 #============= Error Handling ==============================================#
 
@@ -137,19 +139,35 @@ class TestCreateAnAccount(Resource):
 
 #============ For Testing Purposes Only!!! ==================================#
 
+@app.before_request
+def check_user_session():
+    endpoints_without_session_check = ["login", "logout", "checksession", "onuserlistrefresh", 
+                                       "createanaccount", "testcreateanaccount"]
+    if request.endpoint not in endpoints_without_session_check and "user_id" not in session:
+        #may need a try except block. Need testing
+        raise_error("AUTHZ-001")
+
+
 class Login(Resource):
     def post(self):
-        print("login-get")
-        response = request.get_json()
-        potential_user = User.query.filter(User.username == response["username"]).first()
-        
+        print("login-post")
         try:
+            response = request.get_json()
+            potential_user = User.query.filter(User.username == response["username"]).first()
+
+            try:
+                potential_user.authenticate(response["password"])
+            except:
+                raise raise_error("AUTH-001")
+            
             if potential_user.authenticate(response["password"]):
                 session["user_id"] = potential_user.id
                 session["n_of_users"] = 0
                 return make_response(potential_user.to_dict(), 200)
+        except AuthenticationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, could not find username or password in database"}, 404)
+            return make_response(network_error, 404)
     
 class Logout(Resource):
     def delete(self):
@@ -167,9 +185,11 @@ class CheckSession(Resource):
             if user:
                 return make_response(user.to_dict(), 200)
             else:
-                raise ValueError("Error, could not find user data in session")
-        except ValueError as err:
-            return make_response({"message": err}, 404)
+                raise_error("AUTHZ-001")
+        except AuthorizationError as e:
+            return make_response(error_to_dict(e), 400)
+        except:
+            return make_response(network_error, 404)
 
 class Users(Resource):
     def patch(self, user_id):
@@ -190,12 +210,17 @@ class Users(Resource):
                 with open(profile_picture_path, 'wb') as f:
                     f.write(resp.file.read())
                 setattr(user_to_patch, "image_src", src)
-            
+
+                if image_to_base64_uri(profile_picture_path) not in response["image_uri"]:
+                    raise_error("DB-001")
+
             db.session.commit()
     
             return make_response(user_to_patch.to_dict(), 200)
+        except DatabaseError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, could not patch user"}, 404)
+            return make_response(network_error, 404)
 
     def delete(self, user_id):
         print("user-delete")
@@ -205,22 +230,35 @@ class Users(Resource):
             db.session.commit()
             session.pop('user_id', default=None)
             session.pop('n_of_users', default=None)
-            shutil.rmtree(f'../client/phase-5-project/public/images/{user_id}_folder', ignore_errors=True)
+            profile_path_to_delete = f'../client/phase-5-project/public/images/{user_id}_folder'
+            shutil.rmtree(profile_path_to_delete, ignore_errors=True)
+            
+            if os.path.exists(profile_path_to_delete):
+                raise_error("DB-002")
+
             return make_response({"message": "Successfully deleted user"}, 204)
+        except DatabaseError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Could not delete user"}, 404)
+            return make_response(network_error, 404)
         
 class UserPassword(Resource):
     def patch(self, user_id):
         try:
             response = request.get_json()
             password = response["password"]
+
+            if len(password) < 5:
+                raise_error("VAL-007")
+
             user = User.query.filter(User.id == user_id).first()
             user.password_hash = password
             db.session.commit()
             return make_response({"message": "Password has been updated successfully"}, 200)
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Password cannot be changed"}, 404)
+            return make_response(network_error, 404)
 
 class UserSearch(Resource):
     def post(self):
@@ -228,81 +266,101 @@ class UserSearch(Resource):
             response = request.get_json()
             search_query = response["search_query"]
             if not search_query:
-                raise NoSearchQueryError("There needs to be a search query")
+                raise_error("VAL-001")
             
             search_query_w_wildcard = search_query + "%"
             previous_search_results = cache.get('search_results')
             previous_search_query = cache.get('search_query')
+
             logged_in_user = User.query.filter(User.id == session["user_id"]).first()
-            logged_in_user_friends = logged_in_user.friends
+            logged_in_user_dict = logged_in_user.to_dict()
+            logged_in_user_friends = [friend.to_dict() for friend in logged_in_user.friends]
+
+            logged_in_user_pending_friends = [friend.to_dict() for friend in logged_in_user.pending_friends]
 
             #first time searching here and when user deletes a letter from the search query
             if (not previous_search_results and not previous_search_query and search_query) or \
                 (len(previous_search_query) > len(search_query)):
 
-                filtered_users = [user for user in User.query.filter(User.username.like(search_query_w_wildcard)).all()
-                                  if user not in logged_in_user_friends]
+                filtered_users = [user.to_dict() for user in User.query.filter(User.username.like(search_query_w_wildcard)).all()
+                                  if user.to_dict() not in logged_in_user_friends and user.to_dict() not in logged_in_user_pending_friends]
                 search_results = []
 
                 for friend in logged_in_user_friends:
-                    if friend.username == search_query:
+                    if friend["username"] == search_query:
                         continue
-                    elif search_query.lower() in friend.username.lower():
-                        search_results.append(friend)
+
+                    elif search_query.lower() in friend["username"].lower():
+                        friend_status = {"isFriend": True, "isPending": False}
+                        search_results.append({**friend, **friend_status})
+
+                for friend in logged_in_user_pending_friends:
+                    if friend["username"] == search_query:
+                        continue
+
+                    elif search_query.lower() in friend["username"].lower():
+                        friend_status = {"isFriend": False, "isPending": True}
+                        search_results.append({**friend, **friend_status})
 
                 for user in filtered_users:
-                    if user == logged_in_user or user.username == search_query:
+                    if user == logged_in_user_dict or user["username"] == search_query:
                         continue
                     else:
-                        search_results.append(user)
+                        friend_status = {"isFriend": False, "isPending": False}
+                        search_results.append({**user, **friend_status})
 
                 combined = filtered_users + logged_in_user_friends
-                combined_filtered = [user for user in combined if user != logged_in_user]
+                combined_filtered = [user for user in combined if user != logged_in_user_dict]
 
                 for user in combined_filtered:
-                    if user.username == search_query:
-                        search_results.insert(0, user)
+                    if user["username"] == search_query:
+                        if user in logged_in_user_friends:
+                            friend_status = {"isFriend": True, "isPending": False}
+                        elif user in logged_in_user_pending_friends:
+                            friend_status = {"isFriend": False, "isPending": True}
+                        else:
+                            friend_status = {"isFriend": False, "isPending": False}
 
-                search_results = [result.to_dict() for result in search_results]
+                        search_results.insert(0, {**user, **friend_status})
+                
                 cache.set('search_results', search_results, timeout=60)
                 cache.set('search_query', search_query, timeout=60)
+
                 if len(search_results) == 0:
-                    raise NoSearchResultsError()
+                    raise_error("VAL-002")
 
                 return make_response(search_results, 200)
 
             elif len(previous_search_query) < len(search_query) and previous_search_results:
-                print("am I in here?")
                 search_results = [user for user in previous_search_results if search_query in user["username"]]
                 cache.set('search_results', search_results, timeout=60)
                 cache.set('search_query', search_query, timeout=60)
                 if len(search_results) == 0:
-                    raise NoSearchResultsError()
+                    raise_error("VAL-002")
 
                 return make_response(search_results, 200)
-            elif not search_query:
-                raise ValueError("Search query is blank. Cannot search")
             else:
-                raise NoSearchResultsError()
-        except ValueError as e:
-            return make_response(jsonify({"error": str(e)}), 403)
-        except NoSearchResultsError as e:
-            return make_response(jsonify({"error": str(e)}), 402)
-        except NoSearchQueryError as e:
-            return make_response(jsonify({"error": str(e)}), 401)
+                raise_error("VAL-002")
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
+        except:
+            return make_response(network_error, 404)
 
 class Friends(Resource):
     def get(self):
         user_id = session['user_id']
-        user = User.query.filter(User.id == user_id).first()
-        friends = []
+        try:
+            user = User.query.filter(User.id == user_id).first()
+            friends = []
 
-        for friend in user.all_friends:
-            friend_to_add = friend["value"].to_dict()
-            friend_to_add["status"] = friend["status"]
-            friends.append(friend_to_add)
+            for friend in user.all_friends:
+                friend_to_add = friend["value"].to_dict()
+                friend_to_add["status"] = friend["status"]
+                friends.append(friend_to_add)
 
-        return make_response(friends, 200)
+            return make_response(friends, 200)
+        except:
+            return make_response(network_error, 404)
     
 class FriendsEdit(Resource):
     def delete(self, f_id):
@@ -318,7 +376,7 @@ class FriendsEdit(Resource):
             db.session.commit()
             return make_response({"message": "Friend deleted successfully"},200)
         except:
-            return make_response({"message": "Unable to delete friendship"}, 404)
+            return make_response(network_error, 404)
 
 
 class FriendRequest(Resource):
@@ -330,32 +388,46 @@ class FriendRequest(Resource):
 
         try:
             requester = User.query.filter(User.id == requester_id).first()
-            requester.send_friend_request(reciever_id)
-            created_request = Friendship.query.filter(Friendship.sender_id == requester_id, Friendship.reciever_id == reciever_id).first().to_dict()
+
+            try:
+                requester.send_friend_request(reciever_id)
+            except:
+                raise_error("VAL-003")
+
+            created_request = Friendship.query.filter(Friendship.sender_id == requester_id, 
+                                                      Friendship.reciever_id == reciever_id).first().to_dict()
             return make_response(created_request, 200)
         except:
-            return make_response({"message": "Either the sender or reciever of the friend request does not exist"}, 404)
+            return make_response({"error": "Either the sender or reciever of the friend request does not exist"}, 404)
         
     def patch(self):
         print('friendrequest-patch')
-        response = request.get_json()
-        friend_request_id = int(response["friend_request_id"])
-        friend_request_response = response["friend_request_response"]
         try:
+            response = request.get_json()
+            friend_request_id = int(response["friend_request_id"])
+            friend_request_response = response["friend_request_response"]
+            if friend_request_response not in ["accepted", "rejected"]:
+                raise_error("VAL-004")
+
             f = Friendship.query.filter(Friendship.id == friend_request_id).first()
             friend_request_reciever = User.query.filter(User.id == f.reciever_id).first()
-            friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
+            try:
+                friend_request_reciever.respond_to_friend_request(friend_request_id, friend_request_response)
+            except:
+                raise_error("VAL-005")
+
             if friend_request_response == "accepted":
                 updated_friend_request = Friendship.query.filter(Friendship.id == friend_request_id).first().to_dict()
                 return make_response(updated_friend_request, 200)
             elif friend_request_response == "rejected":
-                return make_response({"message": "Successfully rejected friend request!"}, 200)     
+                return make_response({"message": "Successfully rejected friend request!"}, 200)  
             else:
-                raise ValueError("Friend request response must be either accepted or rejected")
-        except ValueError as err:
-            return make_response({"message": err}, 400)
+                raise_error("NET-001")   
+
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": f"Error, could not {friend_request_response} friend request"}, 404)
+            return make_response(network_error, 404)
         
 class Posts(Resource):
     def get(self):
@@ -372,24 +444,28 @@ class Posts(Resource):
             
             sorted_post_list = sorted(post_list, key=lambda post: post.updated_at)
             sorted_post_list_to_dict = [post.to_dict() for post in sorted_post_list]
+
             return make_response(sorted_post_list_to_dict, 200)
         except:
-            return make_response({"message": "Error, could not retrieve all posts"}, 404)
+            return make_response(network_error, 404)
         
     def post(self):
         print('post-post')
-        response = request.get_json()
-    
         try:
+            response = request.get_json()
             user_id = session["user_id"]
             image_uri = response["image_uri"]
-            new_post = Post(
-                location=response["location"],
-                caption=response["caption"],
-                user_id=user_id
-            )
-            db.session.add(new_post)
-            db.session.commit()
+            try:
+                new_post = Post(
+                    location=response["location"],
+                    caption=response["caption"],
+                    user_id=user_id
+                )
+                db.session.add(new_post)
+                db.session.commit()
+            except:
+                raise_error("VAL-006")
+
             if image_uri:
                 resp = urllib.request.urlopen(image_uri)
                 new_post_path = f'../client/phase-5-project/public/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{new_post.id}.jpg'
@@ -399,26 +475,38 @@ class Posts(Resource):
                     new_post.image_src = f'/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{new_post.id}.jpg'
                     db.session.commit()
 
+                if not os.path.exists(new_post_path):
+                    raise_error("DB-003")
+
             return make_response(new_post.to_dict(), 200)
+        except DatabaseError as e:
+            return make_response(error_to_dict(e), 400)
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 401)
         except:
-            return make_response({"message": "Error, new post could not be created"}, 404)
+            return make_response(network_error, 404)
         
 class PostEdit(Resource):
     def delete(self, p_id):
         try:
             post_to_delete = Post.query.filter(Post.id == p_id).first()
-            print(post_to_delete.user_id, session["user_id"])
-            if post_to_delete.user_id != session["user_id"]:
-                raise ValueError("user does not have the credentials to edit this post")
-            
+            user_id = post_to_delete.user_id
+            post_id = post_to_delete.id
+
             db.session.delete(post_to_delete)
             db.session.commit()
+
+            profile_path_to_delete = f'../client/phase-5-project/public/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{post_id}.jpg'
+            shutil.rmtree(profile_path_to_delete, ignore_errors=True)
+
+            if os.path.exists(profile_path_to_delete):
+                raise_error("DB-004")
+
             return make_response({"message": "Post has been succesfully deleted"}, 204)
-        
-        except ValueError as err:
-            return make_response({"message": err}, 402)
+        except DatabaseError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, post cannot be found"}, 404)
+            return make_response(network_error, 404)
         
     def patch(self, p_id):
         response = request.get_json()
@@ -434,34 +522,47 @@ class PostEdit(Resource):
             if response.get("image_uri"):
                 image_uri = response["image_uri"]
                 resp = urllib.request.urlopen(image_uri)
-                new_post_path = f'../client/phase-5-project/public/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
+                post_path = f'../client/phase-5-project/public/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
                 src = f'/images/{poster_id}_folder/{poster_id}_posts_folder/{poster_id}_{post_id}.jpg'
-                with open(new_post_path, 'wb') as f:
+                with open(post_path, 'wb') as f:
                     f.write(resp.file.read())
                 setattr(post_to_patch, "_image_src", src)
+
+                if image_to_base64_uri(post_path) not in response["image_uri"]:
+                    raise_error("DB-004")
+
             db.session.commit()
             return make_response(post_to_patch.to_dict(), 200)
+        except DatabaseError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, could not patch post"}, 404)
+            return make_response(network_error, 404)
 
         
 class CreateAnAccount(Resource):
     def post(self):
         print('createanaccount-post')
-        response = request.get_json()
-        
-        first_name = response["first_name"]
-        last_name = response["last_name"]
-        username = response["username"]
-        image_uri = response["image_uri"]
-
         try:
-            new_user = User(first_name=first_name,
-                            last_name=last_name,
-                            username=username)
-            new_user.password_hash = response["password"]
-            db.session.add(new_user)
-            db.session.commit()
+            response = request.get_json()
+            first_name = response["first_name"]
+            last_name = response["last_name"]
+            username = response["username"]
+            image_uri = response["image_uri"]
+            password = response["password"]
+
+            if len(password) < 5:
+                raise_error("VAL-007")
+
+            try:
+                new_user = User(first_name=first_name,
+                                last_name=last_name,
+                                username=username)
+                new_user.password_hash = password
+                db.session.add(new_user)
+                db.session.commit()
+            except:
+                raise_error("VAL-008")
+
             os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder")
             os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder")
             os.mkdir(f"../client/phase-5-project/public/images/{new_user.id}_folder/{new_user.id}_posts_folder")
@@ -474,15 +575,21 @@ class CreateAnAccount(Resource):
                     new_user.image_src = f'/images/{new_user.id}_folder/{new_user.id}_profile_picture_folder/{new_user.id}_profile.jpg'
                     db.session.commit()
 
+                if not os.path.exists(profile_picture_path):
+                    raise_error("DB-005")
+        
             return make_response(new_user.to_dict(), 200)
+        except DatabaseError as e:
+            return make_response(error_to_dict(e), 400)
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 401)
         except:
-            return make_response({"message": "Error, new user could not be made"}, 404)
+            return make_response({"error": "Error, new user could not be made"}, 404)
 
 #repurpose later
 class onUserListRefresh(Resource):
     def delete(self):
         session['n_of_users'] = 0
-
         return make_response({"message": "Session cookie has been successfully changed"}, 200)
     
 class Comments(Resource):
@@ -495,9 +602,12 @@ class Comments(Resource):
             text = response["text"]
             user_id = session["user_id"]
 
-            new_comment = Comment(post_id=post_id, user_id=user_id, text=text)
-            db.session.add(new_comment)
-            db.session.commit()
+            try:
+                new_comment = Comment(post_id=post_id, user_id=user_id, text=text)
+                db.session.add(new_comment)
+                db.session.commit()
+            except: 
+                raise_error("VAL-009")
 
             reciever = Post.query.filter(Post.id == post_id).first().user
             sender_username = User.query.filter(User.id == user_id).first().username
@@ -515,8 +625,10 @@ class Comments(Resource):
                 db.session.commit()
 
             return make_response(new_comment.to_dict(), 200)
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, could not create new comment"}, 404)
+            return make_response(network_error, 404)
     
 class CommentEdit(Resource):
     def patch(self, c_id):
@@ -527,13 +639,18 @@ class CommentEdit(Resource):
             comment_to_patch = Comment.query.filter(Comment.id == c_id).first()
             all_attr = comment_to_patch.__dict__
             for attr in all_attr:
+                if attr == "text" and len(response[attr]) == 0:
+                    raise_error("VAL-010")
+
                 if response.get(attr):
                     setattr(comment_to_patch, attr, response[attr])
 
             db.session.commit()
             return make_response(comment_to_patch.to_dict(), 200)
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, could not patch post"}, 404)
+            return make_response(network_error, 404)
         
 
     def delete(self, c_id):
@@ -543,7 +660,7 @@ class CommentEdit(Resource):
             db.session.commit()
             return make_response({"message": "Comment deleted successfully"}, 204)
         except:
-            return make_response({"message": "Error, comment could not be deleted"}, 404)
+            return make_response(network_error, 404)
         
 class PostLikes(Resource):
     def post(self):
@@ -553,14 +670,17 @@ class PostLikes(Resource):
             user_id = session["user_id"]
             post_id = response["post_id"]
 
-            post_like = PostLike(
-                isLiked=isLiked,
-                user_id=user_id,
-                post_id=post_id
-            )
+            try:
+                post_like = PostLike(
+                    isLiked=isLiked,
+                    user_id=user_id,
+                    post_id=post_id
+                )
 
-            db.session.add(post_like)
-            db.session.commit()
+                db.session.add(post_like)
+                db.session.commit()
+            except:
+                raise_error("VAL-011")
 
             sender_username = User.query.filter(User.id == user_id).first().username
             reciever_id = Post.query.filter(Post.id == post_id).first().user_id
@@ -575,8 +695,10 @@ class PostLikes(Resource):
                 db.session.add(post_like_notification)
                 db.session.commit()
             return make_response(post_like.to_dict(), 200)
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, post could not be liked"}, 404)
+            return make_response(network_error, 404)
 
 class PostDislike(Resource):
     def delete(self, post_like_id):
@@ -586,7 +708,7 @@ class PostDislike(Resource):
             db.session.commit()
             return make_response({"message": "Post dislike successful"}, 204)
         except:
-            return make_response({"message": "Error, post like could not be deleted"}, 404)     
+            return make_response(network_error, 404)     
 
 class CommentLikes(Resource):
     def post(self):
@@ -596,13 +718,16 @@ class CommentLikes(Resource):
             isLiked = response["isLiked"]
             comment_id = response["comment_id"]
 
-            comment_like = CommentLike(
-                isLiked=isLiked,
-                user_id=liker_id,
-                comment_id=comment_id
-            )
-            db.session.add(comment_like)
-            db.session.commit()
+            try:
+                comment_like = CommentLike(
+                    isLiked=isLiked,
+                    user_id=liker_id,
+                    comment_id=comment_id
+                )
+                db.session.add(comment_like)
+                db.session.commit()
+            except:
+                raise_error("VAL-012")
 
             comment = Comment.query.filter(Comment.id == comment_id).first()
             commenter_id = comment.user_id
@@ -657,8 +782,10 @@ class CommentLikes(Resource):
                 all_cln_dict = [cln.to_dict() for cln in all_cln]
                 return make_response(all_cln_dict, 200)
 
+        except ValidationError as e:
+            return make_response(error_to_dict(e), 400)
         except:
-            return make_response({"message": "Error, comment could not be liked"}, 404)
+            return make_response(network_error, 404)
         
 class CommentDislike(Resource):
     def delete(self, comment_like_id):
@@ -668,7 +795,7 @@ class CommentDislike(Resource):
             db.session.commit()
             return make_response({"message": "Comment dislike successful"}, 204)
         except:
-            return make_response({"message": "Error, comment like could not be deleted"}, 404)
+            return make_response(network_error, 404)
         
 class CommentNotifications(Resource):
     def delete(self, cn_id):
@@ -678,7 +805,7 @@ class CommentNotifications(Resource):
             db.session.commit()
             return make_response({"message": "Comment notification deleted successfully"}, 204)
         except:
-            return make_response({"message": "Error, comment notification could not be deleted"}, 404)
+            return make_response(network_error, 404)
 
 class CommentLikeNotifications(Resource):
     def delete(self, cln_id):
@@ -688,7 +815,7 @@ class CommentLikeNotifications(Resource):
             db.session.commit()
             return make_response({"message": "Comment like notification deleted successfully"}, 204)
         except:
-            return make_response({"message": "Error, comment like notification could not be deleted"}, 404)
+            return make_response(network_error, 404)
 
 class PostLikeNotifications(Resource):
     def delete(self, pln_id):
@@ -698,7 +825,7 @@ class PostLikeNotifications(Resource):
             db.session.commit()
             return make_response({"message": "Post like notification deleted successfully"}, 204)
         except:
-            return make_response({"message": "Error, post like notification could not be deleted"}, 404)
+            return make_response(network_error, 404)
 
 api.add_resource(Users, "/users/<int:user_id>")
 api.add_resource(UserTest, '/all_users')

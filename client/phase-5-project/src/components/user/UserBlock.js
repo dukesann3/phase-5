@@ -5,6 +5,7 @@ import { NavLink } from "react-router-dom"
 
 export default function UseBlock({user}){
 
+    const {isFriend, isPending} = user
     const loggedInUser = useSelector((store) => store.user.value)
     const dispatch = useDispatch()
     const [sent, setSent] = useState(false)
@@ -25,10 +26,14 @@ export default function UseBlock({user}){
                 <span>Username: {user.username}</span>
             </NavLink>
             {
-                sent ?
+                sent || isPending?
                 <span>Sent</span>
                 :
+                isFriend ?
+                <span>is Friend</span>
+                :
                 <button onClick={send_friend_request}>Send Friend Request</button>
+
             }
         </>
     )

@@ -357,9 +357,11 @@ class User(db.Model, SerializerMixin):
     def friends(self):
         friends = []
         for friendship in self.friendships:
-            if not self.id == friendship.reciever_id and friendship.status == "accepted":
+            if self.id != friendship.reciever_id and friendship.status == "accepted":
+                print(friendship.reciever.username, friendship.status)
                 friends.append(friendship.reciever)
-            elif not self.id == friendship.sender_id and friendship.status == "accepted":
+            elif self.id != friendship.sender_id and friendship.status == "accepted":
+                print(friendship.reciever.username, friendship.status)
                 friends.append(friendship.sender)
 
         return friends
@@ -368,9 +370,10 @@ class User(db.Model, SerializerMixin):
     def pending_friends(self):
         pending_friends = []
         for friendship in self.friendships:
-            if not self.id == friendship.reciever_id and friendship.status == "pending":
-                pending_friends.append(friendship)
-        
+            if self.id != friendship.reciever_id and friendship.status == "pending":
+                print(friendship.reciever.username, friendship.status)
+                pending_friends.append(friendship.reciever)
+
         return pending_friends
     
     @hybrid_property

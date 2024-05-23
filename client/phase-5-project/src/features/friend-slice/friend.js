@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { makeSentenceError } from '../../useful_functions'
 
 export const friendSlice = createSlice({
     name: 'friend',

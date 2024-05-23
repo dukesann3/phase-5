@@ -1,7 +1,7 @@
 import { createSlice, current } from '@reduxjs/toolkit'
 import { userLogout } from './userList'
 import { createSelector } from 'reselect'
-import { ReactReduxContext } from 'react-redux'
+import { makeSentenceError } from '../../useful_functions'
 
 //specify deleted notification id in CRUD operation please
 const noteTypeToURLMapper = [
@@ -172,15 +172,13 @@ export function fetchUser(value){
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(value)
-        }).then((r)=>{
+        }).then(async (r)=>{
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error("Error, could not find username or password in database")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         }).then((r) => {
             dispatch(loginSucceeded(r))
-        }).catch((err) => {
-            dispatch(loginFailed())
-            console.log(err)
+        }).catch((error) => {
+            dispatch(loginFailed(error.toString()))
         })
     }
 }
@@ -194,31 +192,30 @@ export function logoutUser(){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r)=>{
+        .then(async (r)=>{
             if(r.ok) return
-            throw new Error("Network failure")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then(() => {
             dispatch(logoutSucceeded())
             dispatch(userLogout())
         })
-        .catch((err) => {
-            console.log(err)
-            dispatch(logoutFailed())
+        .catch((error) => {
+            dispatch(logoutFailed(error.toString()))
         })
     }
 }
 
 export function checkSession(){
     return async (dispatch, getState) => {
-        fetch("/checksession").then((r) => {
+        fetch("/checksession")
+        .then(async (r) => {
             if(r.ok){return r.json()}
-            else if(r.status === 404) throw new Error("Error, could not find user data in session")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((r) => dispatch(loginSucceeded(r)))
-        .catch((err) => {
-            console.log(err)
+        .catch((error) => {
+            console.log(error.toString())
         })
     }
 }
@@ -236,16 +233,15 @@ export function deleteNotification(deleteInfo){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok){
                 dispatch(deleteNotificationSucceeded(deleteInfo))
                 return
             }
-            else if(r.status === 404) throw new Error("Error, notification could not be deleted")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
-        .catch((err) => {
-            dispatch(deleteNotificationFailure(err.toString()))
+        .catch((error) => {
+            dispatch(deleteNotificationFailure(error.toString()))
         })
     }
 }
@@ -264,16 +260,15 @@ export function respondToFriendRequest(friendship_id, response){
                 friend_request_id: friendship_id
             })
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 400) throw new Error("Could not send friend request")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((r) => {
             dispatch(patchFriendRequestSuccess(friendship_id))
         })
-        .catch((err) => {
-            dispatch(patchFriendRequestFailure(err.toString()))
+        .catch((error) => {
+            dispatch(patchFriendRequestFailure(error.toString()))
         })
     }
 }
@@ -289,17 +284,15 @@ export function patchUser(user_id, value){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error("Could not edit user")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
-            console.log(resp)
             dispatch(patchUserSuccess(resp))
         })
-        .catch((err) => {
-            dispatch(patchUserFailure(err.toString()))
+        .catch((error) => {
+            dispatch(patchUserFailure(error.toString()))
         })
     }
 }
@@ -314,17 +307,15 @@ export function deleteUser(user_id){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok){
                 dispatch(deleteUserSuccess())
-                //see if I have to add anything at the end
                 return
             }
-            else if(r.status === 404) throw new Error("Unable to delete user")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
-        .catch((err) => {
-            dispatch(deleteUserFailure(err.toString()))
+        .catch((error) => {
+            dispatch(deleteUserFailure(error.toString()))
         })
     }
 }
@@ -340,16 +331,15 @@ export function patchUserPwd(user_id, new_password){
             },
             body: JSON.stringify({password: new_password})
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error("Password could not be changed")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((r) => {
             dispatch(patchUserPwdSuccess())
         })
-        .catch((err) => {
-            dispatch(patchUserPwdFailure(err.toString()))
+        .catch((error) => {
+            dispatch(patchUserPwdFailure(error.toString()))
         })
     }
 }

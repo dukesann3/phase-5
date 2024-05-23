@@ -1,4 +1,5 @@
 import { createSlice, current } from '@reduxjs/toolkit'
+import { makeSentenceError } from '../../useful_functions'
 
 export const postSlice = createSlice({
     name: 'allPosts',
@@ -255,10 +256,9 @@ export function getPosts(){
         dispatch(postGetPending())
 
         await fetch('/posts')
-        .then((r)=>{
+        .then(async (r)=>{
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             dispatch(postGetSuccessful(resp))
@@ -282,13 +282,11 @@ export function postPost(value){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
-            console.log(resp)
             dispatch(postSuccess(resp))
         })
         .catch((error) => {
@@ -301,7 +299,6 @@ export function postPost(value){
 export function patchPost(value, p_id){
     return async (dispatch, getState) => {
         dispatch(postPatchPending())
-        console.log(value, p_id)
         await fetch(`/post/${p_id}`, {
             method: "PATCH",
             headers: {
@@ -309,10 +306,9 @@ export function patchPost(value, p_id){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             console.log(resp)
@@ -335,13 +331,12 @@ export function deletePost(p_id){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok){
                 dispatch(postDeleteSuccess(p_id))
                 return
             }
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
             dispatch(postDeleteFailure(error.toString()))
@@ -361,10 +356,9 @@ export function postComment(value){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             dispatch(commentPostSuccess(resp))
@@ -387,10 +381,9 @@ export function patchComment(value, c_id){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             dispatch(commentPatchSuccess(resp, c_id))
@@ -412,13 +405,12 @@ export function deleteComment(c_id){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok){
                 dispatch(commentDeleteSuccess(c_id))
                 return
             }
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
             dispatch(commentDeleteFailure(error.toString()))
@@ -438,10 +430,9 @@ export function postPostLike(value){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             dispatch(postLikePostSuccess(resp))
@@ -462,13 +453,12 @@ export function deletePostLike(post_like_id){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok){
                 dispatch(postLikeDeleteSuccess(post_like_id))
                 return
             }
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
             dispatch(postLikeDeleteFailure(error.toString()))
@@ -488,10 +478,9 @@ export function postCommentLike(value){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             dispatch(commentLikePostSuccess(resp))
@@ -513,13 +502,12 @@ export function deleteCommentLike(comment_like_id){
                 'Content-Type': 'application/json'
             }
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok){
                 dispatch(commentLikeDeleteSuccess(comment_like_id))
                 return
             }
-            else if(r.status === 404) throw new Error(r.json())
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
             dispatch(commentLikeDeleteFailure(error.toString()))

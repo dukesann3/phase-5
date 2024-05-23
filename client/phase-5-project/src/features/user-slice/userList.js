@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { makeSentenceError } from '../../useful_functions'
 
 export const userListSlice = createSlice({
     name: 'userList',
@@ -19,7 +20,6 @@ export const userListSlice = createSlice({
         },
         fetchFailure: (state, action) => {
             state.errorMessage = action.payload
-            console.log(action.payload)
         },
         userLogout: (state) => {
             state.value = []
@@ -65,11 +65,11 @@ export function fetchUserList(searchQuery){
         })
         .then(async (r) => {
             if(r.ok) return r.json()
-            return await r.json().then(err => {
+            return await r.json().then(error => {
                 if(r.status === 401 || r.status === 402){
                     dispatch(noResults())
                 }
-                throw new Error(err.error)
+                throw new Error(makeSentenceError(error))
             })
         })
         .then((r) => {
@@ -92,20 +92,18 @@ export function sendFriendRequest(value){
             },
             body: JSON.stringify(value)
         })
-        .then((r) => {
+        .then(async (r) => {
             if(r.ok) return r.json()
-            else if(r.status === 404) throw new Error("Either the sender or reciever of the friend request does not exist")
-            throw new Error("Network Error")
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((resp) => {
             dispatch(postFRequestSuccess(resp))
         })
-        .catch((err) => {
-            dispatch(postFRequestFailure(err.toString()))
+        .catch((error) => {
+            dispatch(postFRequestFailure(error.toString()))
         })
     }
 }
-
 
 export const { 
     fetchSuccess, fetchPending, fetchFailure, 

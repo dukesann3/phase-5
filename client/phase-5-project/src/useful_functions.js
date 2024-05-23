@@ -8,3 +8,13 @@ export function updatedAtComparator(a,b){
     return 0
 
 }
+
+export function makeSentenceError(error){
+    try{
+        const {message, explanation, action} = error
+        const wholeSentence = message + " " + explanation + " " + action
+        return wholeSentence
+    }catch(error){
+        throw new Error("Error format is incorrect")
+    }
+}

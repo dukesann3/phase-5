@@ -4,6 +4,8 @@ import PostList from "./post/PostList";
 
 function Home(){
 
+    console.log(window.location.href)
+
     return(
         <>
             <span>Home?</span>

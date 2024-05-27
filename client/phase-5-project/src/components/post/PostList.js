@@ -8,12 +8,6 @@ import PostBlock from "./PostBlock"
 
 export default function PostList(){
 
-    //work on this later
-    // const sortedViaUpdateDate = createSelector(
-    //     (state) => state.allPost.value,
-    //     (posts) => posts.sort(updatedAtComparator)
-    // )
-
     const posts = useSelector(state => state.allPost.value)
     console.log(posts)
     const dispatch = useDispatch()

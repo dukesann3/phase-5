@@ -34,12 +34,13 @@ export const userListSlice = createSlice({
             const newState = currentState.map((user) => {
                 if(action.payload.reciever_id === user.id){
                     user.isPending = true
-                    return
+                    return user
                 }
-                return
+                return user
             })
             state.value = newState
             state.friendRequestErrorMessage = ""
+            console.log(newState)
         },
         postFRequestPending: (state) => {
             state.friendRequestErrorMessage = ""

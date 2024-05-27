@@ -1,15 +1,14 @@
 import { Outlet } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { checkSession } from "../features/user-slice/user";
+import Footer from "./Footer";
+import "../CSS/parent.css"
 
 function App() {
 
   const dispatch = useDispatch()
-
-  const loggedInUser = useSelector((store) => store.user.value)
-  const friends = useSelector((store) => store.friends.value)
 
   useEffect(()=>{
     dispatch(checkSession())
@@ -18,9 +17,8 @@ function App() {
   return (
     <>
       <Navbar />
-      <h1>This is App</h1>
       <Outlet />
-      <h1>This is Footer</h1>
+      <Footer />
     </>
   );
 }

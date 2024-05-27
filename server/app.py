@@ -154,17 +154,15 @@ class Login(Resource):
         try:
             response = request.get_json()
             potential_user = User.query.filter(User.username == response["username"]).first()
-
-            try:
-                potential_user.authenticate(response["password"])
-            except:
-                raise raise_error("AUTH-001")
             
             if potential_user.authenticate(response["password"]):
                 session["user_id"] = potential_user.id
                 session["n_of_users"] = 0
                 return make_response(potential_user.to_dict(), 200)
+            else:
+                raise raise_error("AUTH-001")
         except AuthenticationError as e:
+            print("is it raising the error?")
             return make_response(error_to_dict(e), 400)
         except:
             return make_response(network_error, 404)

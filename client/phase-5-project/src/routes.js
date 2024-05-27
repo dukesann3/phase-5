@@ -2,7 +2,6 @@ import App from "./components/App";
 import ErrorPage from "./components/ErrorPage";
 import Home from "./components/Home";
 import Login from "./components/Login";
-import Message from "./components/Message";
 import PostPage from "./components/post/PostBlock";
 import UserProfilePage from "./components/user/UserProfilePage";
 import Welcome from "./components/Welcome";
@@ -23,10 +22,6 @@ const routes = [
                 path: '/',
                 element: <Welcome />
             },
-            // {
-            //     path: '/',
-            //     element: <UserTest />
-            // },
             {
                 path: '/login',
                 element: <Login />
@@ -36,10 +31,6 @@ const routes = [
                 element: <Home />
             },
             {
-                path: '/message/:user_id',
-                element: <Message />
-            },
-            {
                 path: '/post/:postid',
                 element: <PostPage />
             },
@@ -47,10 +38,6 @@ const routes = [
                 path: '/profile',
                 element: <UserProfilePage />
             },
-            // {
-            //     path: '/',
-            //     element: <Tester />
-            // },
             {
                 path: '/create_an_account',
                 element: <CreateAccount />

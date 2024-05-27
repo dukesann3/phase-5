@@ -1,6 +1,9 @@
 import { useFormik } from "formik"
 import * as Yup from 'yup'
 import { useNavigate } from "react-router-dom"
+import {Form, FormField} from 'semantic-ui-react'
+import 'semantic-ui-css/semantic.min.css'
+import "../../CSS/createanaccount.css"
 
 export default function CreateAccount(){
 
@@ -56,8 +59,11 @@ export default function CreateAccount(){
     })
 
     return(
-        <>
-            <form onSubmit={formik.handleSubmit}>
+        <div className="create-an-account-container">
+            <Form onSubmit={formik.handleSubmit} className="create-an-account-item">
+                <h3>CREATE AN ACCOUNT</h3>
+                <FormField>
+                <label>FIRST NAME</label>
                 <input 
                 type="text" 
                 id="first_name"
@@ -66,8 +72,11 @@ export default function CreateAccount(){
                 onChange={formik.handleChange}
                 value={formik.values.first_name}
                 />
+                </FormField>
                 <div>{formik.errors.first_name}</div>
 
+                <FormField>
+                <label>LAST NAME</label>
                 <input 
                 type="text" 
                 id="last_name"
@@ -76,8 +85,11 @@ export default function CreateAccount(){
                 onChange={formik.handleChange}
                 value={formik.values.last_name}
                 />
+                </FormField>
                 <div>{formik.errors.last_name}</div>
 
+                <FormField>
+                <label>USERNAME</label>
                 <input 
                 type="text" 
                 id="username"
@@ -86,8 +98,11 @@ export default function CreateAccount(){
                 onChange={formik.handleChange}
                 value={formik.values.username}
                 />
+                </FormField>
                 <div>{formik.errors.username}</div>
 
+                <FormField>
+                <label>PASSWORD</label>
                 <input 
                 type="password" 
                 id="password"
@@ -96,19 +111,23 @@ export default function CreateAccount(){
                 onChange={formik.handleChange}
                 value={formik.values.password}
                 />
+                </FormField>
                 <div>{formik.errors.password}</div>
 
+                <FormField>
+                <label>PROFILE PICTURE</label>
                 <input 
                 type="file" 
                 id="image_uri"
                 name="image_uri"
                 onChange={onImageChange}
                 />
+                </FormField>
 
                 <input 
                 type="submit"
                 />
-            </form>
-        </>
+            </Form>
+        </div>
     )
 }

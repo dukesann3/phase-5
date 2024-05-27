@@ -1,0 +1,40 @@
+
+.grid-container-footer {
+    display: grid;
+    place-items: center;
+    grid-template-columns: 1fr 0.10fr 1fr; 
+    gap: 10px; 
+    background-color: rgb(134, 207, 243);
+}
+
+.grid-item-footer {
+    padding: 20px;
+    text-align: left;
+}
+
+.vertical-line {
+    border-left: 1.2px solid rgba(60, 68, 0, 0.97);
+    height: 60%;
+}
+
+.info-item, .legal-item {
+    text-align: left;
+    color: rgba(60, 68, 0, 0.97);
+    font-size: 0.8rem;
+}
+
+.info-item{
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+}
+
+.legal-item {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+}
+
+

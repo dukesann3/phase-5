@@ -2,6 +2,7 @@ import { logoutUser } from "../features/user-slice/user"
 import { useDispatch, useSelector } from "react-redux"
 import { NavLink } from "react-router-dom"
 import { useNavigate } from "react-router-dom"
+import "../CSS/navbar.css"
 
 export function Navbar(){
 
@@ -9,26 +10,28 @@ export function Navbar(){
     const loggedInUser = useSelector((store) => store.user)
     const navigate = useNavigate()
 
-    const user_id = loggedInUser.value.id
-
     return(
         <>
             {
                 loggedInUser.loginStatus.isLoggedIn ?
-                <nav className="loggedIn">
-                    <button onClick={() => {
-                        dispatch(logoutUser())
-                        navigate("/")
-                    }}>Logout</button>
-                    <NavLink to={'/profile'}>Profile</NavLink>
-                    <NavLink to={'/friendslist'}>Friends</NavLink>
-                    <NavLink to={`/home/${user_id}`}>Home</NavLink>
-                    <NavLink to={'/settings'}>Settings</NavLink>
-                </nav>
+                <div className="nav-container-in">
+                    <div className="flatbook-title-container-in">FLATBOOK</div>
+                    <div className="in-item-container"><NavLink className="nav-item" to={'/profile'}>Profile</NavLink></div>
+                    <div className="in-item-container"><NavLink className="nav-item" to={'/friendslist'}>Friends</NavLink></div>
+                    <div className="in-item-container"><NavLink className="nav-item" to={`/home/${loggedInUser.value.id}`}>Home</NavLink></div>
+                    <div className="in-item-container"><NavLink className="nav-item" to={'/settings'}>Settings</NavLink></div>
+                    <div className="in-item-container">                    
+                        <button className="nav-item" onClick={() => {
+                            dispatch(logoutUser())
+                            navigate("/")
+                        }}>Logout</button>
+                    </div>
+                </div>
                 :
-                <nav className="not-loggedIn">
-                    <NavLink to="/login">Login</NavLink>
-                </nav>
+                <div className="nav-container-out">
+                    <div className="flatbook-title-container">FLATBOOK</div>
+                    <div className="out-item-container"><NavLink to="/" className="nav-item">Welcome</NavLink></div>
+                </div>
             }
         </>
     )

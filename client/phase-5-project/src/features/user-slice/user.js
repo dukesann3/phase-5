@@ -72,6 +72,7 @@ export const userSlice = createSlice({
             }
             state.notifications = []
             state.logoutErrorMessage = ""
+            console.log("logout succeeded", state.value)
         },
         logoutPending: (state) => {
             state.logoutErrorMessage = ""
@@ -162,27 +163,6 @@ export const userSlice = createSlice({
     }   
 })
 
-//thunk action creators and thunk functions
-export function fetchUser(value){
-    return async (dispatch, getState) => {
-        dispatch(loginPending())
-        await fetch('/login', {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(value)
-        }).then(async (r)=>{
-            if(r.ok) return r.json()
-            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
-        }).then((r) => {
-            dispatch(loginSucceeded(r))
-        }).catch((error) => {
-            dispatch(loginFailed(error.toString()))
-        })
-    }
-}
-
 export function logoutUser(){
     return async (dispatch, getState) => {
         dispatch(logoutPending())
@@ -193,12 +173,12 @@ export function logoutUser(){
             }
         })
         .then(async (r)=>{
-            if(r.ok) return
+            if(r.ok) {
+                dispatch(logoutSucceeded())
+                dispatch(userLogout())
+                console.log("I am out")
+            }
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
-        })
-        .then(() => {
-            dispatch(logoutSucceeded())
-            dispatch(userLogout())
         })
         .catch((error) => {
             dispatch(logoutFailed(error.toString()))

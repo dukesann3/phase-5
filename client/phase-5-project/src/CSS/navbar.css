@@ -1,0 +1,55 @@
+
+.nav-container-out {
+    display: grid;
+    grid-template-columns: 3fr 0.5fr;
+    height: 10vh;
+    place-items: center;
+    background-color: rgb(233, 233, 233)
+}
+
+.out-item-container {
+    padding: 10px;
+}
+
+.out-item-container:hover {
+    background-color: rgba(246, 246, 246, 0.5);
+}
+
+.nav-item {
+    text-decoration: none;
+    font-family: "Outfit", sans-serif;
+    text-decoration: none;
+}
+
+.flatbook-title-container {
+    font-size: 5vh;
+    font-family: "Outfit", sans-serif;
+    font-weight: 800;
+    position: relative;
+    left: -30%;
+}
+
+/* ================================================== */
+
+.nav-container-in {
+    display: grid;
+    grid-template-columns: 3fr 0.5fr 0.5fr 0.5fr 0.5fr 0.5fr;
+    height: 10vh;
+    place-items: center;
+    background-color: rgb(233, 233, 233); 
+    grid-column-gap: 10px;
+}
+
+.flatbook-title-container-in {
+    font-size: 5vh;
+    font-family: "Outfit", sans-serif;
+    font-weight: 800;
+    position: relative;
+    left: -30%;
+}
+
+.in-item-container {
+    padding: 10px;
+}
+
+

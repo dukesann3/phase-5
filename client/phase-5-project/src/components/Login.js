@@ -1,21 +1,39 @@
 //no need to use redux for login screen
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
-import { useDispatch, useSelector } from 'react-redux' 
-import { fetchUser } from '../features/user-slice/user'
+import { useSelector, useDispatch } from 'react-redux' 
 import { NavLink } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import {Form, FormField} from 'semantic-ui-react'
+import 'semantic-ui-css/semantic.min.css'
+import { makeSentenceError } from '../useful_functions'
+import { loginSucceeded, loginPending, loginFailed } from '../features/user-slice/user'
 
 function Login(){
 
-    const dispatch = useDispatch()
     const loggedInUser = useSelector((store) => store.user)
     const navigate = useNavigate()
+    const dispatch = useDispatch()
 
-    useEffect(()=>{
-        if(loggedInUser.value.id) navigate(`/home/${loggedInUser.value.id}`)
-    },[loggedInUser])
+    function fetchUser(value){
+        dispatch(loginPending())
+        fetch('/login', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(value)
+        }).then(async (r)=>{
+            if(r.ok) return r.json()
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
+        }).then((r) => {
+            dispatch(loginSucceeded(r))
+            navigate(`/home/${loggedInUser.value.id}`)
+        }).catch((error) => {
+            console.log("login error: ",error.toString())
+            dispatch(loginFailed(error.toString()))
+        })
+    }
 
     const formik = useFormik({
         initialValues: {
@@ -27,13 +45,15 @@ function Login(){
             password: Yup.string().required("*required")
         }),
         onSubmit: (value) => {
-            dispatch(fetchUser(value))
+            fetchUser(value)
         }
     })
 
     return(
         <>
-            <form onSubmit={formik.handleSubmit}>
+            <Form onSubmit={formik.handleSubmit}>
+                <FormField>
+                <label>USERNAME</label>
                 <input 
                 type="text" 
                 id="username"
@@ -42,8 +62,11 @@ function Login(){
                 onChange={formik.handleChange}
                 value={formik.values.username}
                 />
+                </FormField>
                 <div>{formik.errors.username}</div>
 
+                <FormField>
+                <label>PASSWORD</label>
                 <input 
                 type="password"
                 id="password"
@@ -51,13 +74,14 @@ function Login(){
                 onChange={formik.handleChange}
                 value={formik.values.password}
                 />
+                </FormField>
                 <div>{formik.errors.password}</div>
 
                 <input type='submit' />
-            </form>
+            </Form>
             <p className="warning-message">
                 {loggedInUser.loginStatus.toggle === "failed" ? 
-                "incorrect username or password" : ""}
+                loggedInUser.loginErrorMessage : ""}
             </p>
             <NavLink to="/create_an_account">Create an Account</NavLink>  
         </>

@@ -4,6 +4,8 @@ import ProfileInfo from "./ProfileInfo"
 import { useDispatch } from "react-redux"
 import { useEffect } from "react"
 import { getFriends } from "../../features/friend-slice/friend"
+import 'semantic-ui-css/semantic.min.css'
+import "../../CSS/profile.css"
 
 function Profile(){
     const dispatch = useDispatch()
@@ -46,9 +48,9 @@ function Profile(){
         <>
             {
                 user_info() ?
-                <>
+                <div className="profile-container">
                     <ProfileInfo editable={false} user={user_info()} posts={post_info()}/>
-                </>
+                </div>
                 :
                 null
             }

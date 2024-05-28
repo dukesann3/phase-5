@@ -1,0 +1,18 @@
+
+.friends-list-container {
+    margin-top: 3%;
+    margin-right: 10%;
+    margin-left: 10%;
+    margin-bottom: 3%;
+}
+
+.friends-list-word-container {
+    margin-bottom: 2%;
+}
+
+.friends-list-word-container span {
+    font-family: "Outfit", sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-style: normal;
+}

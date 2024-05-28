@@ -1,19 +1,26 @@
+import 'semantic-ui-css/semantic.min.css'
+import "../../CSS/profileinfo.css"
 
 function UserProfile({user, open}){
 
     const {_image_src, first_name, last_name, username} = user
 
-    console.log(_image_src)
-
     return(
-        <>
-            <h3>Profile Page</h3>
-            <img src={_image_src} />
-            <span>{first_name}</span>
-            <span>{last_name}</span>
-            <span>{username}</span>
-            <button onClick={open}>Edit</button>
-        </>
+        <div className="profile-card-group-container">
+            <div className="profile-title">
+                <span>PROFILE PAGE</span>
+            </div>
+            <div className="profile-card-container">
+                <div className="profile-image-container">
+                    <img src={_image_src}/>
+                </div>
+                <div className="profile-description-container">
+                    <div>FIRST NAME: {first_name}</div>
+                    <div>LAST NAME:{last_name}</div>
+                    <div>USERNAME: {username}</div>
+                </div>
+            </div>
+        </div>
     )
 }
 

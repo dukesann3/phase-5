@@ -5,8 +5,10 @@ import { useState } from "react"
 import { useFormik } from "formik"
 import { NavLink } from "react-router-dom"
 import 'semantic-ui-css/semantic.min.css'
-import { Card, CardMeta, CardHeader, CardDescription, Image, CardContent, Button } from "semantic-ui-react"
+import { Card, CardMeta, CardHeader, CardDescription, 
+    Image, CardContent, Button, Form, FormField, FormGroup } from "semantic-ui-react"
 import "../../CSS/postblock.css"
+import "../../CSS/postedit.css"
 
 export default function PostBlock({post}){
 
@@ -108,35 +110,48 @@ export default function PostBlock({post}){
             {
             editMode ?
             <>
-                <form onSubmit={formik.handleSubmit}>
-                    <input 
-                    type="file"
-                    id="image_uri"
-                    onChange={onImageChange}
-                    placeholder="image"
-                    />
+                <Form className="post-edit-form" onSubmit={formik.handleSubmit}>
+                    <div className="post-edit-word-container"><span>Post Edit</span></div>
+                    <FormField>
+                        <label>Image</label>
+                        <input 
+                        type="file"
+                        id="image_uri"
+                        onChange={onImageChange}
+                        placeholder="image"
+                        />
+                    </FormField>
 
-                    <input
-                    type="text"
-                    id="location"
-                    onChange={formik.handleChange}
-                    value={formik.values.location}
-                    placeholder="location"
-                    />
+                    <FormGroup>
+                        <FormField>
+                            <label>Text</label>
+                            <input
+                            type="text"
+                            id="location"
+                            onChange={formik.handleChange}
+                            value={formik.values.location}
+                            placeholder="location"
+                            />
+                        </FormField>
 
-                    <input
-                    type="text"
-                    id="caption"
-                    onChange={formik.handleChange}
-                    value={formik.values.caption}
-                    placeholder="caption"
-                    />
+                        <FormField>
+                            <label>Caption</label>
+                            <input
+                            type="text"
+                            id="caption"
+                            onChange={formik.handleChange}
+                            value={formik.values.caption}
+                            placeholder="caption"
+                            />
+                        </FormField>
+                    </FormGroup>
+
 
                     <input 
                     type="submit"
                     />
                     <button onClick={exitEditMode}>exit edit mode</button>
-                </form>
+                </Form>
             </>
             :
             <div className="post-container">

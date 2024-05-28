@@ -1,6 +1,8 @@
 import { useDispatch } from "react-redux"
 import { deleteNotification, respondToFriendRequest } from "../../features/user-slice/user"
-import { CardContent, CardHeader, CardDescription, Button, Card } from "semantic-ui-react"
+import { CardContent, CardHeader, CardDescription, Button } from "semantic-ui-react"
+import 'semantic-ui-css/semantic.min.css'
+import "../../CSS/notificationblock.css"
 
 export default function NotificationBlock({notification}){
 
@@ -34,7 +36,7 @@ export default function NotificationBlock({notification}){
     }
 
     return(
-        <Card>
+        <>
             <CardContent>
                 <CardHeader>{notification_type(notification.type)}</CardHeader>
                 <CardDescription>{notification.value.text}</CardDescription>
@@ -48,6 +50,6 @@ export default function NotificationBlock({notification}){
                 :
                 <Button onClick={() => dispatch(deleteNotification(noteInfoToDelete))}>DELETE</Button>
             }
-        </Card>
+        </>
     )
 }

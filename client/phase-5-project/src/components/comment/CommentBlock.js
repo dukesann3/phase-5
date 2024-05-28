@@ -3,6 +3,9 @@ import { useFormik } from "formik"
 import { patchComment, deleteComment, postCommentLike, deleteCommentLike } from "../../features/post-slice/allPosts"
 import { useState } from "react"
 import { NavLink } from "react-router-dom"
+import 'semantic-ui-css/semantic.min.css'
+import "../../CSS/commentblock.css"
+import { CommentContent, CommentAuthor, CommentText, CommentActions, CommentMetadata, CommentAvatar, Button } from "semantic-ui-react"
 
 export default function CommentBlock({comment}){
 
@@ -78,24 +81,42 @@ export default function CommentBlock({comment}){
                 </form>
                 :
                 <>
-                    <h6>This is Comment Block</h6>
-                    <span>{text}</span>
-                    <NavLink to={user.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
-                        <span>Comment By: {user.username}</span>
-                    </NavLink>
-                    <span>Likes: {comment_likes.length}</span>
-                    <button onClick={() => pressLike()}>Like</button>
-                    <span>Created At: {created_at}</span>
-                    <span>Updated At: {updated_at}</span>
-                    {
-                        userInfo.id === user_id ?
-                        <>
-                            <button onClick={() => dispatch(deleteComment(id))}>DELETE</button>
-                            <button onClick={enterEditMode}>EDIT</button>
-                        </>
-                        :
-                        null
-                    }
+                    <CommentAvatar src={user._image_src}/>
+                    <CommentContent>
+                        <div className="comment-metadata">
+                            <CommentAuthor>
+                                <NavLink to={user.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
+                                    <span>{user.username}</span>
+                                </NavLink>
+                            </CommentAuthor>
+                            <CommentMetadata>
+                                <p className="comment-date">Created At: {created_at}</p>
+                            </CommentMetadata>
+                        </div>
+                        <CommentText>{text}</CommentText>
+                        <CommentActions>
+                            <div className="comment-action-like">
+                                <div>❤</div>
+                                <div>{comment_likes.length}</div>
+                                <Button onClick={() => pressLike()}>Like</Button>
+                            </div>
+                        </CommentActions>
+                        <CommentActions>
+                            {
+                                userInfo.id === user_id ?
+                                <div className="comment-edit-container">
+                                    <button className="comment-edit-button " onClick={() => dispatch(deleteComment(id))}>
+                                        <span className="button-word">DELETE</span>
+                                    </button>
+                                    <button className="comment-edit-button" onClick={enterEditMode}>
+                                        <span className="button-word">EDIT</span>
+                                    </button>
+                                </div>
+                                :
+                                null
+                            }
+                        </CommentActions>
+                    </CommentContent>
                 </>
             }
         </>

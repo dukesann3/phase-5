@@ -2,6 +2,8 @@ import { useFormik } from "formik"
 import * as Yup from 'yup'
 import { useDispatch } from "react-redux"
 import { postComment } from "../../features/post-slice/allPosts"
+import 'semantic-ui-css/semantic.min.css'
+import { Form, FormField } from "semantic-ui-react"
 
 export default function CreateComment({post_id}){
 
@@ -19,18 +21,21 @@ export default function CreateComment({post_id}){
     })
 
     return(
-        <form onSubmit={formik.handleSubmit}>
-            <input
-            type="text"
-            id="text"
-            onChange={formik.handleChange}
-            value={formik.values.text}
-            placeholder="comment"
-            />
+        <Form onSubmit={formik.handleSubmit}>
+            <FormField>
+                <label>Comment</label>
+                <input
+                type="text"
+                id="text"
+                onChange={formik.handleChange}
+                value={formik.values.text}
+                placeholder="comment"
+                />
+            </FormField>
 
             <input 
             type="submit"
             />
-        </form>
+        </Form>
     )
 }

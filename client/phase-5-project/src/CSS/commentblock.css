@@ -1,0 +1,37 @@
+
+.comment-date {
+    font-size: 0.75rem;
+}
+
+.comment-metadata {
+    display: flex;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+}
+
+.comment-action-like {
+    display: grid;
+    grid-template-columns: 0.05fr 0.05fr 0.05fr;
+    place-items: center;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.comment-edit-container {
+    display: grid;
+    grid-template-columns: 0.05fr 0.05fr;
+    place-items: center;
+}
+
+.comment-edit-button {
+    width: auto;
+    height: 2rem;
+    text-align: center;
+}
+
+.button-word {
+    font-size: 0.75rem;
+    text-align: center;
+}
+

@@ -1,10 +1,12 @@
 import { useSelector, useDispatch } from "react-redux"
-// import { createSelector } from "reselect"
 import CreatePost from "./CreatePost"
 import { useEffect } from "react"
 import { getPosts } from "../../features/post-slice/allPosts"
 import PostBlock from "./PostBlock"
-// import { updatedAtComparator } from "../../useful_functions"
+import "../../CSS/postlist.css"
+import { CardGroup, Card } from "semantic-ui-react"
+import 'semantic-ui-css/semantic.min.css'
+
 
 export default function PostList(){
 
@@ -18,18 +20,17 @@ export default function PostList(){
 
 
     return(
-        <>
-            <h2>Post List Bruh</h2>
-            <CreatePost />
+        <div className="flex-container-postlist">
+            <CreatePost className="flex-item-postlist-create-post"/>
             {posts ? 
-            <>
+            <CardGroup itemsPerRow={1} className="flex-item-postlist">
                 {posts.map((post) => {
-                    return <PostBlock key={post.id} post={post}/>
+                    return <Card className="post-card"><PostBlock key={post.id} post={post}/></Card>
                 })}
-            </>
+            </CardGroup>
             :
             null
             }
-        </>
+        </div>
     )
 }

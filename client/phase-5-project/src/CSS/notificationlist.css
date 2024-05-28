@@ -1,0 +1,13 @@
+
+.grid-container-noteList {
+    display: flex;
+    flex-direction: column;
+    justify-items: center;
+    text-align: center;
+}
+
+.notification-title {
+    margin-top: 10%;
+}
+
+

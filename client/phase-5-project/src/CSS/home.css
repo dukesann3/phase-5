@@ -1,0 +1,17 @@
+
+.home-grid-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    height: auto;
+    padding: 10px;
+}
+
+.grid-home-item-left {
+    grid-column: 1 / 1;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+}
+
+
+

@@ -28,7 +28,7 @@ function Login(){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         }).then((r) => {
             dispatch(loginSucceeded(r))
-            navigate(`/home/${loggedInUser.value.id}`)
+            navigate(`/home/${r.id}`)
         }).catch((error) => {
             console.log("login error: ",error.toString())
             dispatch(loginFailed(error.toString()))

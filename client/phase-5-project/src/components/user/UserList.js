@@ -1,15 +1,16 @@
 import { useDispatch, useSelector } from "react-redux"
 import { fetchUserList, unLoadErrorMsg } from "../../features/user-slice/userList"
-import { useParams, NavLink } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { useEffect } from "react"
 import UserBlock from "./UserBlock"
-import { fetchUser } from "../../features/user-slice/user"
+import { List, ListItem } from "semantic-ui-react"
+import 'semantic-ui-css/semantic.min.css'
+import '../../CSS/userlist.css'
 
 export default function UserList(){
 
     const userList = useSelector((store) => store.userList)
     const dispatch = useDispatch()
-    let { user_id } = useParams()
 
     console.log(userList.value)
 
@@ -46,26 +47,29 @@ export default function UserList(){
     }
 
     return(
-        <>
-            <input 
-            type="text"
-            placeholder="search username"
-            onChange={(e) => dispatch(fetchUserList({search_query: e.target.value}))}
-            />
+        <div className="grid-container-userlist">
+            <div className="search-container userlist-grid-item">
+                <input 
+                type="text"
+                placeholder="search username"
+                onChange={(e) => dispatch(fetchUserList({search_query: e.target.value}))}
+                className="search-input"
+                />
+            </div>
             
             {
                 userList.value.length > 0 ?
-                <>
+                <List className="userList-grid-item userList">
                     {userList.value.map((user) => {
                         return (
-                            <UserBlock key={`${user.id}_${user.username}`} user={user}/>
+                            <ListItem><UserBlock key={`${user.id}_${user.username}`} user={user}/></ListItem>
                         )
                     })}
-                </>
+                </List>
                 :
                 null
             }
             <span className='userlist-error-msg'></span>
-        </>
+        </div>
     )
 }

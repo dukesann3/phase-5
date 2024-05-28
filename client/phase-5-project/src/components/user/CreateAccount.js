@@ -23,7 +23,10 @@ export default function CreateAccount(){
             else if(r.status === 404) throw new Error("User cannot be created")
             throw new Error("Network Error")
         })
-        .then(() => navigate("/"))
+        .then((r) => {
+            console.log(r)
+            navigate("/")
+        })
         .catch((error) => console.log(error))
     }
 

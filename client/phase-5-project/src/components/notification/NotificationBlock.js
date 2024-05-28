@@ -1,7 +1,23 @@
 import { useDispatch } from "react-redux"
 import { deleteNotification, respondToFriendRequest } from "../../features/user-slice/user"
+import { CardContent, CardHeader, CardDescription, Button, Card } from "semantic-ui-react"
 
 export default function NotificationBlock({notification}){
+
+    const notification_mapper = {
+        friend_request_notifications: "Friend Request",
+        post_like_notifications: "Post Like",
+        comment_notifications: "Comment",
+        comment_like_notifications: "Comment Like"
+    }
+
+    const notification_type = (imported_notification_type) => {
+        const notification = notification_mapper[imported_notification_type]
+        if(notification) return notification
+        else{
+            return false
+        }
+    }
 
     const dispatch = useDispatch()
 
@@ -18,19 +34,20 @@ export default function NotificationBlock({notification}){
     }
 
     return(
-        <>
-            <span>Notification Dayo!</span>
-            <p>{notification.type}</p>
-            <p>{notification.value.text}</p>
+        <Card>
+            <CardContent>
+                <CardHeader>{notification_type(notification.type)}</CardHeader>
+                <CardDescription>{notification.value.text}</CardDescription>
+            </CardContent>
             {
                 notification.type === "friend_request_notifications"?
-                <>
-                    <button onClick={() => onFriendRequestResponse("accepted")}>Accept</button>
-                    <button onClick={() => onFriendRequestResponse("rejected")}>Reject</button>
-                </>
+                <div className="ui two buttons">
+                    <Button basic color="green" onClick={() => onFriendRequestResponse("accepted")}>Accept</Button>
+                    <Button basic color="red" onClick={() => onFriendRequestResponse("rejected")}>Reject</Button>
+                </div>
                 :
-                <button onClick={() => dispatch(deleteNotification(noteInfoToDelete))}>DELETE</button>
+                <Button onClick={() => dispatch(deleteNotification(noteInfoToDelete))}>DELETE</Button>
             }
-        </>
+        </Card>
     )
 }

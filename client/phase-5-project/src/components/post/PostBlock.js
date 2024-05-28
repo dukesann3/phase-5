@@ -4,6 +4,9 @@ import { patchPost, deletePost, postPostLike, deletePostLike} from "../../featur
 import { useState } from "react"
 import { useFormik } from "formik"
 import { NavLink } from "react-router-dom"
+import 'semantic-ui-css/semantic.min.css'
+import { Card, CardMeta, CardHeader, CardDescription, Image, CardContent, Button } from "semantic-ui-react"
+import "../../CSS/postblock.css"
 
 export default function PostBlock({post}){
 
@@ -65,9 +68,7 @@ export default function PostBlock({post}){
             caption: ""
         },
         onSubmit: (value) => {
-            console.log(formik.initialValues)
             const modifiedValue = getModifiedValues(value, formik.initialValues)
-            console.log(modifiedValue)
             dispatch(patchPost(modifiedValue, id))
             exitEditMode()
         }
@@ -138,28 +139,37 @@ export default function PostBlock({post}){
                 </form>
             </>
             :
-            <>
-                <img src={_image_src}/>
-                <NavLink to={userInfo.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
-                    <span>Post By: {user.username}</span>
-                </NavLink>
-                <span>{caption}</span>
-                <span>{location}</span>
-                <span>Likes: {liked_posts()}</span>
-                <button onClick={() => pressLike()}>Like</button>
-                <span>Created at: {created_at}</span>
-                <span>Updated at: {updated_at}</span>
-                <CommentList comments={comments} post_id={id}/>
+            <div className="post-container">
+                <Image className="post-image" src={_image_src}/>
+                <CardMeta><span className="post-date">Created at: {created_at}</span></CardMeta>
+                <CardMeta><span className="post-date">Updated at: {updated_at}</span></CardMeta>
+                <CardMeta>{location}</CardMeta>
+                <div className="post-caption-block">
+                    <CardHeader><h3>{caption}</h3></CardHeader>
+                </div>
+                <CardHeader>
+                    <NavLink to={userInfo.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
+                        <span>Post By: {user.username}</span>
+                    </NavLink>
+                </CardHeader>
+                <div className="post-like-heart">
+                    <CardDescription>❤</CardDescription>
+                    <CardDescription>{liked_posts()}</CardDescription>
+                    <Button className="post-like-button" onClick={() => pressLike()}>Like</Button>
+                </div>
+                <div className="delete-edit-post-container">
                 {
                     userInfo.id === user_id?
-                    <>
-                        <button onClick={() => dispatch(deletePost(id))}>DELETE</button>
-                        <button onClick={enterEditMode}>EDIT</button>
-                    </>
+                    <div className="ui two buttons">
+                        <Button basic color='red' onClick={() => dispatch(deletePost(id))}>DELETE</Button>
+                        <Button basic color='yellow' onClick={enterEditMode}>EDIT</Button>
+                    </div>
                     :
                     null
                 }
-            </>
+                </div>
+                <CommentList comments={comments} post_id={id}/>
+            </div>
             }
         </div>
     )

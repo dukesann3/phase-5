@@ -1,0 +1,34 @@
+
+.search-container {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 24px;
+    padding: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 7vh;
+    width: 40%;
+}
+
+.search-input {
+    border: none;
+    outline: none;
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 24px 0 0 24px;
+    flex: 1; 
+}
+
+.grid-container-userlist {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.userlist-grid-item {
+    margin-top: 5%;
+}
+
+

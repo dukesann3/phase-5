@@ -2,6 +2,8 @@ import { useSelector, useDispatch } from "react-redux"
 import { sendFriendRequest } from "../../features/user-slice/userList"
 import { useState } from "react"
 import { NavLink } from "react-router-dom"
+import {ListContent, Image, ListHeader, ListDescription, Button} from "semantic-ui-react"
+import 'semantic-ui-css/semantic.min.css'
 
 export default function UseBlock({user}){
 
@@ -20,21 +22,25 @@ export default function UseBlock({user}){
 
     return(
         <>
-            <span>First Name: {user.first_name}</span>
-            <span>Last Name: {user.last_name}</span>
-            <NavLink to={`/user/${user.id}/profile`}>
-                <span>Username: {user.username}</span>
-            </NavLink>
-            {
-                sent || isPending?
-                <span>Sent</span>
-                :
-                isFriend ?
-                <span>is Friend</span>
-                :
-                <button onClick={send_friend_request}>Send Friend Request</button>
-
-            }
+            <Image avatar src={user._image_src}/>
+            <ListContent>
+                <ListHeader>            
+                    <NavLink to={`/user/${user.id}/profile`}>
+                        <span>Username: {user.username}</span>
+                    </NavLink>
+                </ListHeader>
+                <ListDescription>
+                {
+                    sent || isPending?
+                    <span>Friend Request Sent</span>
+                    :
+                    isFriend ?
+                    <span>Friend</span>
+                    :
+                    <Button onClick={send_friend_request}>Send Friend Request</Button>
+                }
+                </ListDescription>
+            </ListContent>
         </>
     )
 }

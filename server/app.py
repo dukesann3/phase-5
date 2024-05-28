@@ -263,8 +263,6 @@ class UserSearch(Resource):
         try:
             response = request.get_json()
             search_query = response["search_query"]
-            if not search_query:
-                raise_error("VAL-001")
             
             search_query_w_wildcard = search_query + "%"
             previous_search_results = cache.get('search_results')

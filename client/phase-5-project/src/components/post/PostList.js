@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { getPosts } from "../../features/post-slice/allPosts"
 import PostBlock from "./PostBlock"
 import "../../CSS/postlist.css"
-import { CardGroup, Card } from "semantic-ui-react"
+import { CardGroup } from "semantic-ui-react"
 import 'semantic-ui-css/semantic.min.css'
 
 
@@ -25,7 +25,7 @@ export default function PostList(){
             {posts ? 
             <CardGroup itemsPerRow={1} className="flex-item-postlist">
                 {posts.map((post) => {
-                    return <Card className="post-card"><PostBlock key={post.id} post={post}/></Card>
+                    return <PostBlock key={post.id} post={post}/>
                 })}
             </CardGroup>
             :

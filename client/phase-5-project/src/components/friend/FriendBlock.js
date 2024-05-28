@@ -1,5 +1,5 @@
-import 'semantic-ui-css/semantic.min.css'
-import { CardContent, CardHeader, CardMeta, CardDescription } from 'semantic-ui-react'
+// import 'semantic-ui-css/semantic.min.css'
+import { CardContent, CardHeader, CardMeta } from 'semantic-ui-react'
 import "../../CSS/friendblock.css"
 
 function FriendBlock({friend}){
@@ -11,8 +11,8 @@ function FriendBlock({friend}){
             <CardMeta>{status}</CardMeta>
             <div className="friend-block-info-container">
                 <CardHeader>USERNAME: {username}</CardHeader>
-                <CardDescription>FIRST: {first_name}</CardDescription>
-                <CardDescription>LAST: {last_name}</CardDescription>
+                <CardHeader>FIRST: {first_name}</CardHeader>
+                <CardHeader>LAST: {last_name}</CardHeader>
             </div>
         </CardContent>
     )

@@ -1,6 +1,9 @@
 import { useFormik } from "formik"
 import { patchUser } from "../../features/user-slice/user"
 import { useDispatch } from "react-redux"
+import 'semantic-ui-css/semantic.min.css'
+import { Form, FormField, FormGroup } from "semantic-ui-react"
+import "../../CSS/profiledit.css"
 
 function UserProfileEditMode({user, close}){
 
@@ -56,39 +59,52 @@ function UserProfileEditMode({user, close}){
     }
 
     return(
-        <form onSubmit={formik.handleSubmit}>
+        <Form className="profile-edit-form" onSubmit={formik.handleSubmit}>
             <p>Edit Mode</p>
-            <img src={_image_src} />
-            <input 
-            type="file"
-            id="image_uri"
-            onChange={onImageChange}
-            />
-            
-            <input
-            type="text"
-            id="first_name"
-            onChange={formik.handleChange}
-            value={formik.values.first_name}
-            />
+            <FormField>
+                <label>Profile Picture</label>
+                <input 
+                type="file"
+                id="image_uri"
+                onChange={onImageChange}
+                />
+            </FormField>
 
-            <input
-            type="text"
-            id="last_name"
-            onChange={formik.handleChange}
-            value={formik.values.last_name}
-            />
+            <FormGroup>
+                <FormField>
+                    <label>First Name</label>
+                    <input
+                    type="text"
+                    id="first_name"
+                    onChange={formik.handleChange}
+                    value={formik.values.first_name}
+                    />
+                </FormField>
 
-            <input
-            type="text"
-            id="username"
-            onChange={formik.handleChange}
-            value={formik.values.username}
-            />
+                <FormField>
+                    <label>Last Name</label>
+                    <input  
+                    type="text"
+                    id="last_name"
+                    onChange={formik.handleChange}
+                    value={formik.values.last_name}
+                    />
+                </FormField>
+
+                <FormField>
+                    <label>Username</label>
+                    <input
+                    type="text"
+                    id="username"
+                    onChange={formik.handleChange}
+                    value={formik.values.username}
+                    />
+                </FormField>
+            </FormGroup>
             
             <input type="submit"/>
             <button onClick={close}>Close</button>
-        </form>
+        </Form>
     )
 }
 

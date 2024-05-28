@@ -1,6 +1,7 @@
 import PostBlock from "../post/PostBlock"
 import 'semantic-ui-css/semantic.min.css'
 import "../../CSS/profileinfo.css"
+import { Card } from "semantic-ui-react"
 
 function ProfileInfo({user, posts}){
 
@@ -23,7 +24,7 @@ function ProfileInfo({user, posts}){
             </div>
             {
                 posts.map((post) => {
-                    return <PostBlock key={post.id} post={post}/>
+                    return <Card><PostBlock key={post.id} post={post}/></Card>
                 })
             }
         </div>

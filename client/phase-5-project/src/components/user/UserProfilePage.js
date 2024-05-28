@@ -3,6 +3,7 @@ import PostBlock from "../post/PostBlock";
 import { useState } from "react";
 import UserProfileEditMode from "./UserProfileEditMode";
 import UserProfile from "./UserProfile";
+import { Card } from "semantic-ui-react";
 
 function UserProfilePage(){
 
@@ -51,7 +52,7 @@ function UserProfilePage(){
                     {
                         post_info()?
                         post_info().map((post) => {
-                            return <PostBlock key={post.id} post={post}/>
+                            return <Card><PostBlock key={post.id} post={post}/></Card>
                         })
                         :
                         null

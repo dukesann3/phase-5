@@ -19,6 +19,7 @@ function UserProfile({user, open}){
                     <div>LAST NAME:{last_name}</div>
                     <div>USERNAME: {username}</div>
                 </div>
+                <button className="edit-profile-button" onClick={open}>Edit Profile</button>
             </div>
         </div>
     )

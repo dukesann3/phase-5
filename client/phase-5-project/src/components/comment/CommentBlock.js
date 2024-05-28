@@ -5,7 +5,10 @@ import { useState } from "react"
 import { NavLink } from "react-router-dom"
 import 'semantic-ui-css/semantic.min.css'
 import "../../CSS/commentblock.css"
-import { CommentContent, CommentAuthor, CommentText, CommentActions, CommentMetadata, CommentAvatar, Button } from "semantic-ui-react"
+import "../../CSS/commentedit.css"
+import { CommentContent, CommentAuthor, CommentText, 
+    CommentActions, CommentMetadata, CommentAvatar, 
+    Button, Form, FormField } from "semantic-ui-react"
 
 export default function CommentBlock({comment}){
 
@@ -62,23 +65,27 @@ export default function CommentBlock({comment}){
         <>
             {   
                 editMode ?
+                
+                <div className="comment-edit-form-container">
+                    <Form className="comment-edit-form" onSubmit={formik.handleSubmit}>
+                        <FormField>
+                            <label>Edit Comment</label>
+                            <input 
+                            type="text"
+                            id="text"
+                            onChange={formik.handleChange}
+                            placeholder="comment"
+                            />
+                        </FormField>
 
-                <form onSubmit={formik.handleSubmit}>
+                        <input
+                        type="submit"
+                        />
 
-                    <input 
-                    type="text"
-                    id="text"
-                    onChange={formik.handleChange}
-                    placeholder="comment"
-                    />
+                        <button onClick={exitEditMode}>exit edit mode</button>
 
-                    <input
-                    type="submit"
-                    />
-
-                    <button onClick={exitEditMode}>exit edit mode</button>
-
-                </form>
+                    </Form>
+                </div>
                 :
                 <>
                     <CommentAvatar src={user._image_src}/>

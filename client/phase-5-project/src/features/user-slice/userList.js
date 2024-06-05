@@ -1,21 +1,22 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { makeSentenceError } from '../../useful_functions'
+import { postSuccess } from '../post-slice/allPosts'
 
 export const userListSlice = createSlice({
     name: 'userList',
     initialState: {
-        value: [],
+        value: [], //value is the user list projected in the search results... very front-end heavy
+        userBank: [], //userBank stores data fetched by search function... serves as information "bank"
         errorMessage: "",
-        friendRequestErrorMessage: ""
+        friendRequestErrorMessage: "",
+        addUsersToBankErrorMessage: ""
     },
     reducers: {
         fetchSuccess: (state, action) => {
-            console.log("success")
             state.value = action.payload
             state.errorMessage = ""
         },
         fetchPending: (state) => {
-            console.log("User list fetch pending")
             state.errorMessage = ""
         },
         fetchFailure: (state, action) => {
@@ -40,7 +41,6 @@ export const userListSlice = createSlice({
             })
             state.value = newState
             state.friendRequestErrorMessage = ""
-            console.log(newState)
         },
         postFRequestPending: (state) => {
             state.friendRequestErrorMessage = ""
@@ -51,12 +51,35 @@ export const userListSlice = createSlice({
         //no results from userlist
         noResults: (state) => {
             state.value = []
+        },
+        //Add Stranger===========================
+        addUserToBankSuccess: (state, action) => {
+            const currentStrangerArray = state.userBank
+            const newStrangerArray = [...currentStrangerArray, action.payload]
+            
+            state.userBank = newStrangerArray
+            state.addUsersToBankErrorMessage = ""
+        },
+        addUserToBankFailure: (state, action) => {
+            state.addUsersToBankErrorMessage = action.payload
+        },
+        addUserToBankPending: (state) => {
+            state.addUsersToBankErrorMessage = ""
+        },
+        //CLEAR ALL USER VALUE AND BANK
+        clearAllUsers: (state) => {
+            state.value = []
+            state.userBank = []
         }
     }
 })
 
 export function fetchUserList(searchQuery){
+    console.log("fetchUserList")
     return async (dispatch, getState) => {
+        const state = getState()
+        dispatch(fetchPending())
+
         fetch(`/user/search`, {
             method: "POST",
             headers: {
@@ -67,22 +90,39 @@ export function fetchUserList(searchQuery){
         .then(async (r) => {
             if(r.ok) return r.json()
             return await r.json().then(error => {
-                if(r.status === 401 || r.status === 402){
-                    dispatch(noResults())
-                }
                 throw new Error(makeSentenceError(error))
             })
         })
-        .then((r) => {
-            dispatch(fetchSuccess(r))
+        .then((fetchedUserList) => {
+            const userBank = state.userList.userBank
+            const newUsers = fetchedUserList.filter((fetchedUser) => 
+                !userBank.some(userInBank => userInBank.id === fetchedUser.id)
+            )
+            const newUsersCopy = {...newUsers}
+
+            if(newUsersCopy.length > 0){
+                newUsersCopy.forEach((newUser) => {
+                    dispatch(addUserToBankSuccess(newUser))
+                    const newUserPosts = newUser.posts
+                    for(const post in newUserPosts){
+                        const postWithAttr = {...post}
+                        postWithAttr.isFriendPost = newUser.isFriend ? true : false
+                        dispatch(postSuccess(postWithAttr))
+                    }
+                })
+            }
+            
+            dispatch(fetchSuccess(fetchedUserList))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(fetchFailure(error.toString()))
         })
     }
 }
 
 export function sendFriendRequest(value){
+    console.log("sendFriendRequest")
     return async (dispatch, getState) => {
         dispatch(postFRequestPending())
 
@@ -101,7 +141,44 @@ export function sendFriendRequest(value){
             dispatch(postFRequestSuccess(resp))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postFRequestFailure(error.toString()))
+        })
+    }
+}
+
+export function fetchSpecificUser(userId){
+    console.log("fetchSpecificUser")
+    return async (dispatch, getState) => {
+        const state = getState()
+        const userBank = state.userList.userBank
+        const allPosts = state.allPost.value
+        dispatch(addUserToBankPending())
+
+        fetch(`/user/${userId}`)
+        .then(async (r) => {
+            if(r.ok) return r.json()
+            return await r.json().then(error => {throw new Error(makeSentenceError(error))})
+        })
+        .then((fetchedUser) => {
+            const isExistingUserInBank = userBank.some(userInBank => userInBank.id == fetchedUser.id)
+            const isPostInSlice = allPosts.some(userPost => userPost.user_id == fetchedUser.id) 
+
+            if(!isExistingUserInBank){
+                dispatch(addUserToBankSuccess(fetchedUser))
+            }
+            if(!isPostInSlice){
+                let fetchedUserCopy = {...fetchedUser}
+                fetchedUserCopy.posts.forEach((post) => {
+                    let postCopy = {...post}
+                    postCopy.isFriendPost = false
+                    dispatch(postSuccess(postCopy))
+                })
+            }
+        })
+        .catch((error) => {
+            console.log(error.toString())
+            dispatch(addUserToBankFailure(error.toString()))
         })
     }
 }
@@ -109,6 +186,8 @@ export function sendFriendRequest(value){
 export const { 
     fetchSuccess, fetchPending, fetchFailure, 
     userLogout, unLoadErrorMsg,
-    postFRequestSuccess, postFRequestPending, postFRequestFailure, noResults
+    postFRequestSuccess, postFRequestPending, postFRequestFailure, noResults,
+    addUserToBankSuccess, addUserToBankPending, addUserToBankFailure,
+    clearAllUsers
  } = userListSlice.actions
 export default userListSlice.reducer

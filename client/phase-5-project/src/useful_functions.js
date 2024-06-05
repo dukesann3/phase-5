@@ -18,3 +18,7 @@ export function makeSentenceError(error){
         throw new Error("Error format is incorrect")
     }
 }
+
+export function makeIntoUniqueArray(arr){
+    return [...new Set(arr)]
+}

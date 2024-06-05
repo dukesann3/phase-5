@@ -2,15 +2,19 @@ import { createSlice, current } from '@reduxjs/toolkit'
 import { userLogout } from './userList'
 import { createSelector } from 'reselect'
 import { makeSentenceError } from '../../useful_functions'
+import { getPosts } from '../post-slice/allPosts'
+import { clearAllPosts } from '../post-slice/allPosts'
+import { clearAllUsers } from './userList'
+import { clearAllFriends } from '../friend-slice/friend'
 
 //specify deleted notification id in CRUD operation please
-const noteTypeToURLMapper = [
+export const noteTypeToURLMapper = [
     {
         type: "comment_like_notifications",
         deleteURL: "/comment/like/notification/"
     },
     {
-        type: "comment_notifications",
+        type: "comment_notifications",  
         deleteURL: "/comment/notification/"
     },
     {
@@ -72,7 +76,6 @@ export const userSlice = createSlice({
             }
             state.notifications = []
             state.logoutErrorMessage = ""
-            console.log("logout succeeded", state.value)
         },
         logoutPending: (state) => {
             state.logoutErrorMessage = ""
@@ -159,11 +162,12 @@ export const userSlice = createSlice({
         },
         patchUserPwdFailure: (state, action) => {
             state.patchUserErrorMessage = action.payload
-        }
+        },
     }   
 })
 
 export function logoutUser(){
+    console.log("logout")
     return async (dispatch, getState) => {
         dispatch(logoutPending())
         fetch('/logout', {
@@ -176,7 +180,9 @@ export function logoutUser(){
             if(r.ok) {
                 dispatch(logoutSucceeded())
                 dispatch(userLogout())
-                console.log("I am out")
+                dispatch(clearAllPosts())
+                dispatch(clearAllUsers())
+                dispatch(clearAllFriends())
             }
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
@@ -187,6 +193,7 @@ export function logoutUser(){
 }
 
 export function checkSession(){
+    console.log("checksession")
     return async (dispatch, getState) => {
         fetch("/checksession")
         .then(async (r) => {
@@ -201,6 +208,7 @@ export function checkSession(){
 }
 
 export function deleteNotification(deleteInfo){
+    console.log("deleteNotification")
     return async (dispatch, getState) => {
         dispatch(deleteNotificationPending())
         const {type, id} = deleteInfo
@@ -221,12 +229,14 @@ export function deleteNotification(deleteInfo){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(deleteNotificationFailure(error.toString()))
         })
     }
 }
 
 export function respondToFriendRequest(friendship_id, response){
+    console.log("respondToFriendRequest")
     return async (dispatch, getState) => {
         dispatch(patchFriendRequestPending())
 
@@ -245,15 +255,25 @@ export function respondToFriendRequest(friendship_id, response){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .then((r) => {
+            console.log(r)
             dispatch(patchFriendRequestSuccess(friendship_id))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(patchFriendRequestFailure(error.toString()))
         })
     }
 }
 
+export function respondToFriendRequestAndGetPost(friendship_id, response){
+    return async (dispatch, getState) => {
+        await dispatch(respondToFriendRequest(friendship_id, response))
+        await dispatch(getPosts())
+    }
+}
+
 export function patchUser(user_id, value){
+    console.log("patchUser")
     return async (dispatch, getState) => {
         dispatch(patchUserPending())
 
@@ -272,12 +292,14 @@ export function patchUser(user_id, value){
             dispatch(patchUserSuccess(resp))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(patchUserFailure(error.toString()))
         })
     }
 }
 
 export function deleteUser(user_id){
+    console.log("deleteUser")
     return async (dispatch, getState) => {
         dispatch(deleteUserPending())
 
@@ -295,12 +317,14 @@ export function deleteUser(user_id){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(deleteUserFailure(error.toString()))
         })
     }
 }
 
 export function patchUserPwd(user_id, new_password){
+    console.log("patchUserPassword")
     return async (dispatch, getState) => {
         dispatch(patchUserPwdPending())
 
@@ -319,6 +343,7 @@ export function patchUserPwd(user_id, new_password){
             dispatch(patchUserPwdSuccess())
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(patchUserPwdFailure(error.toString()))
         })
     }

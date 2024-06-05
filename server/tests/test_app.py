@@ -1079,7 +1079,7 @@ class TestLogAndFriendRequest:
                 "search_query": "bbl drizzy"
             })
 
-            assert(search_results.status_code == 400)
+            assert(search_results.status_code == 200)
 
     def test_no_search_query(self):
         '''When there are no search queries, it will
@@ -1118,7 +1118,7 @@ class TestLogAndFriendRequest:
                 "search_query": ""
             })
 
-            assert(search_results.status_code == 400)
+            assert(search_results.status_code == 404)
 
     def test_error_check_session(self):
         '''User should not be able to perform certain

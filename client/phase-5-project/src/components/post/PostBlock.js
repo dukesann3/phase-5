@@ -10,7 +10,7 @@ import { CardMeta, CardHeader, Card, CardDescription,
 import "../../CSS/postblock.css"
 import "../../CSS/postedit.css"
 
-export default function PostBlock({post}){
+export default function PostBlock({post, postOwner}){
 
     const [editMode, setEditMode] = useState(false)
     const enterEditMode = () => setEditMode(true)
@@ -19,7 +19,17 @@ export default function PostBlock({post}){
     const userInfo = useSelector((store) => store.user.value)
     const dispatch = useDispatch()
     
-    const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes, user} = post
+    const {caption, location, created_at, updated_at, _image_src, comments, id, user_id, post_likes} = post
+    const user = "user" in post ? post.user : postOwner
+
+    const testUser = () => {
+        if("user" in post){
+            console.log("this is from all Posts")
+        }
+        else{
+            console.log("this is from userBank")
+        }
+    }
 
     const getModifiedValues = (values, initialValues) => {
         let modifiedValues = {};
@@ -103,8 +113,6 @@ export default function PostBlock({post}){
         }
     }
 
-    console.log(userInfo.id, user_id)
-
     return(
         <div>
             {
@@ -124,7 +132,7 @@ export default function PostBlock({post}){
 
                     <FormGroup>
                         <FormField>
-                            <label>Text</label>
+                            <label>Location</label>
                             <input
                             type="text"
                             id="location"
@@ -177,7 +185,7 @@ export default function PostBlock({post}){
                     {
                         userInfo.id === user_id?
                         <div className="ui two buttons">
-                            <Button basic color='red' onClick={() => dispatch(deletePost(id))}>DELETE</Button>
+                            <Button basic color='red' onClick={() => dispatch(deletePost(post))}>DELETE</Button>
                             <Button basic color='yellow' onClick={enterEditMode}>EDIT</Button>
                         </div>
                         :

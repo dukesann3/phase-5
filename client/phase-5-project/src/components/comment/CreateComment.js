@@ -17,7 +17,10 @@ export default function CreateComment({post_id}){
         validationSchema: Yup.object({
             text: Yup.string().required("*required")
         }),
-        onSubmit: (value) => dispatch(postComment(value))
+        onSubmit: (value) => {
+            dispatch(postComment(value))
+            formik.values.text = ""
+        }
     })
 
     return(

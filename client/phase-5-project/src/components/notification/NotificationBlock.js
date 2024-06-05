@@ -1,5 +1,5 @@
 import { useDispatch } from "react-redux"
-import { deleteNotification, respondToFriendRequest } from "../../features/user-slice/user"
+import { deleteNotification, respondToFriendRequest, respondToFriendRequestAndGetPost } from "../../features/user-slice/user"
 import { CardContent, CardHeader, Button, Card, CardDescription} from "semantic-ui-react"   
 import 'semantic-ui-css/semantic.min.css'
 
@@ -31,7 +31,7 @@ export default function NotificationBlock({notification}){
 
     const onFriendRequestResponse = (response) => {
         const friendship_id = notification.value.friendship_id
-        dispatch(respondToFriendRequest(friendship_id, response))
+        dispatch(respondToFriendRequestAndGetPost(friendship_id, response))
     }
 
     return(

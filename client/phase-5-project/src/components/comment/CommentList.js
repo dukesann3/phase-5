@@ -8,7 +8,7 @@ export default function CommentList({comments, post_id}){
         <>
             <CommentGroup>
                 {comments.map((comment) => {
-                    return <Comment><CommentBlock key={post_id+comment.id} comment={comment}/></Comment>
+                    return <Comment key={post_id+comment.id}><CommentBlock key={post_id+comment.id} comment={comment}/></Comment>
                 })}
             </CommentGroup>
             <CreateComment post_id={post_id}/>

@@ -92,7 +92,7 @@ export default function CommentBlock({comment}){
                     <CommentContent>
                         <div className="comment-metadata">
                             <CommentAuthor>
-                                <NavLink to={user.id == user_id ? `/profile` : `/user/${user_id}/profile`}>
+                                <NavLink to={user.id == userInfo.id ? `/profile` : `/user/${user_id}/profile`}>
                                     <span>{user.username}</span>
                                 </NavLink>
                             </CommentAuthor>

@@ -2,54 +2,36 @@ import { useParams } from "react-router-dom"
 import { useSelector } from "react-redux"
 import ProfileInfo from "./ProfileInfo"
 import { useDispatch } from "react-redux"
-import { useEffect } from "react"
-import { getFriends } from "../../features/friend-slice/friend"
 import 'semantic-ui-css/semantic.min.css'
 import "../../CSS/profile.css"
+import { useEffect } from "react"
+import { fetchSpecificUser } from "../../features/user-slice/userList"
 
 function Profile(){
+
+    const {userid} = useParams()
     const dispatch = useDispatch()
+    const userBank = useSelector((state) => state.userList.userBank)
+    const allPosts = useSelector((state) => state.allPost.value)
+
+    const isUserInBank = userBank.some(userInBank => userInBank.id == userid)
+    const isPostInSlice = allPosts.some(userPost => userPost.user_id == userid) 
 
     useEffect(() => {
-        dispatch(getFriends())
-    }, [])
-
-    const userListSlice = useSelector((state) => state.userList)
-    const friendsSlice = useSelector((state) => state.friends)
-    const postsSLice = useSelector((state) => state.allPost)
-
-    const userList = userListSlice.value
-    const friends = friendsSlice.value
-    const posts = postsSLice.value
-
-    const altogether = userList.concat(friends)
-    const {userid} = useParams()
-
-    const user_info = () => {
-        for(const person of altogether){
-            console.log(person, userid)
-            if(person.id == userid){
-                return person
-            }
+        if(!isUserInBank || !isPostInSlice){
+            dispatch(fetchSpecificUser(userid))
         }
-    }
+    },[userid])
 
-    const post_info = () => {
-        let user_posts = []
-        for(const post of posts){
-            if(post.user_id == userid){
-                user_posts.push(post)
-            }
-        }
-        return user_posts
-    }
+    const user = userBank.filter((userInBank) => userInBank.id == userid)[0]
+    const posts = allPosts.some(post => post.user_id == userid) ? allPosts.filter((post) => post.user_id == userid) : null
 
     return(
         <>
             {
-                user_info() ?
+                user ?
                 <div className="profile-container">
-                    <ProfileInfo editable={false} user={user_info()} posts={post_info()}/>
+                    <ProfileInfo editable={false} user={user} posts={posts}/>
                 </div>
                 :
                 null

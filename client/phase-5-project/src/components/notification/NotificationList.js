@@ -14,7 +14,7 @@ export default function NotificationList(){
         <div className="grid-container-noteList">
             <div className="notification-title"><h3>Notifications</h3></div>
             {   Object.keys(userInfo.value).length !== 0 ?
-                <CardGroup itemsPerRow={1} className="grid-item-noteList">
+                <CardGroup itemsPerRow={1} className="grid-item-noteList" >
                     {notifications.map((notification) => {
                         return (
                                 <NotificationBlock key={notification.id} notification={notification}/>

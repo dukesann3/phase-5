@@ -1,6 +1,5 @@
 import { useDispatch, useSelector } from "react-redux"
 import { fetchUserList, unLoadErrorMsg } from "../../features/user-slice/userList"
-import { useParams } from "react-router-dom"
 import { useEffect } from "react"
 import UserBlock from "./UserBlock"
 import { List, ListItem } from "semantic-ui-react"
@@ -11,8 +10,6 @@ export default function UserList(){
 
     const userList = useSelector((store) => store.userList)
     const dispatch = useDispatch()
-
-    console.log(userList.value)
 
     useEffect(() => {
         if(userList.errorMessage !== ""){
@@ -62,7 +59,7 @@ export default function UserList(){
                 <List className="userList-grid-item userList">
                     {userList.value.map((user) => {
                         return (
-                            <ListItem><UserBlock key={`${user.id}_${user.username}`} user={user}/></ListItem>
+                            <ListItem key={`${user.id}_${user.username}`}><UserBlock key={`${user.id}_${user.username}`} user={user}/></ListItem>
                         )
                     })}
                 </List>

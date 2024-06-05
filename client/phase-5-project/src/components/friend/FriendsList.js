@@ -1,6 +1,7 @@
 import { useDispatch, useSelector } from "react-redux"
 import { getFriends, unfriend } from "../../features/friend-slice/friend"
 import { useEffect } from "react"
+import { getPosts } from "../../features/post-slice/allPosts"
 import { NavLink } from "react-router-dom"
 import FriendBlock from "./FriendBlock"
 import 'semantic-ui-css/semantic.min.css'
@@ -14,6 +15,7 @@ function FriendsList(){
 
     useEffect(() => {
         dispatch(getFriends())
+        dispatch(getPosts())
     },[])
 
     return(

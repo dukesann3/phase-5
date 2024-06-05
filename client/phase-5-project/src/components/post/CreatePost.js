@@ -36,14 +36,21 @@ export default function CreatePost(){
             location: Yup.string().required("*required"),
             caption: Yup.string().required("*required")
         }),
-        onSubmit: (value) => dispatch(postPost(value))
+        onSubmit: (value) => {
+            dispatch(postPost(value))
+            formik.values.location = ""
+            formik.values.caption = ""
+
+            const fileUploader = document.querySelector(".post-file-uploader")
+            fileUploader.value = ""
+        }
     })
 
     return(
         <Form onSubmit={formik.handleSubmit} className="create-post-form">
             <h3>Create Post</h3>
             <FormField>
-                <label>Text</label>
+                <label>Location</label>
                 <input
                 type="text"
                 id="location"
@@ -69,6 +76,7 @@ export default function CreatePost(){
             <FormField>
                 <label>Image</label>
                 <input 
+                className="post-file-uploader"
                 type="file"
                 id="image_uri"
                 onChange={onImageChange}

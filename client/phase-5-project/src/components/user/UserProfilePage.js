@@ -3,7 +3,7 @@ import PostBlock from "../post/PostBlock";
 import { useState } from "react";
 import UserProfileEditMode from "./UserProfileEditMode";
 import UserProfile from "./UserProfile";
-import { Card } from "semantic-ui-react";
+import { CardGroup } from "semantic-ui-react";
 
 function UserProfilePage(){
 
@@ -49,14 +49,16 @@ function UserProfilePage(){
                 :
                 <>
                     <UserProfile user={userValues} open={openEditMode}/>
-                    {
-                        post_info()?
-                        post_info().map((post) => {
-                            return <Card><PostBlock key={post.id} post={post}/></Card>
-                        })
-                        :
-                        null
-                    }
+                    <CardGroup itemsPerRow={1}>
+                        {
+                            post_info()?
+                            post_info().map((post) => {
+                                return <PostBlock key={post.id} post={post}/>
+                            })
+                            :
+                            null
+                        }
+                    </CardGroup>
                 </>
             }
         </>

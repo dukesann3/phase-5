@@ -1,5 +1,7 @@
 import { createSlice, current } from '@reduxjs/toolkit'
 import { makeSentenceError } from '../../useful_functions'
+import { deleteNotificationSucceeded } from '../user-slice/user'
+import { makeIntoUniqueArray } from '../../useful_functions'
 
 export const postSlice = createSlice({
     name: 'allPosts',
@@ -173,7 +175,6 @@ export const postSlice = createSlice({
         },
         postLikePostFailure: (state, action) => {
             state.postPostLikeErrorMessage = action.payload
-            console.log(action.payload)
         },
 
         //DELETE REQUEST POSTLIKE=======================
@@ -183,12 +184,12 @@ export const postSlice = createSlice({
 
             for(const post of stateToBeChanged){
                 for(let i = 0; i < post.post_likes.length; i++){
+                    
                     if(post.post_likes[i].id === action.payload){
-                        post.post_likes.shift(i,1)
+                        post.post_likes.splice(i,1)
                     }
                 }
             }
-
             state.value = stateToBeChanged
             state.deletePostLikeErrorMessage = ""
         },
@@ -225,17 +226,17 @@ export const postSlice = createSlice({
         commentLikeDeleteSuccess: (state, action) => {
             //again, action.payload for this one is the comment_like_id
             const newState = state.value
-            
+
             for(const post of newState){
                 for(const comment of post.comments){
                     for(let i = 0; i < comment.comment_likes.length; i++){
                         if(comment.comment_likes[i].id === action.payload){
-                            comment.comment_likes.shift(i,1)
+                            comment.comment_likes.splice(i,1)
                         }
                     }
                 }
             }
-
+            
             state.value = newState
             state.deleteCommentLikeErrorMessage = ""
         },
@@ -244,34 +245,57 @@ export const postSlice = createSlice({
         },
         commentLikeDeleteFailure: (state, action) => {
             state.deleteCommentLikeErrorMessage = action.payload
+        },
+        //CLEAR ALL POSTS
+        clearAllPosts: (state) => {
+            state.value = []
         }
     }
 
 })
-
 //GET REQUEST==================================================
 
 export function getPosts(){
+    console.log("getPost")
     return async (dispatch, getState) => {
         dispatch(postGetPending())
+        const state = getState()
+        let allPostsCopy = [...state.allPost.value]
 
         await fetch('/posts')
         .then(async (r)=>{
             if(r.ok) return r.json()
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
-        .then((resp) => {
-            dispatch(postGetSuccessful(resp))
+        .then((allPostsOfUserAndFriends) => {
+            let allPostsOfUserAndFriendsCopy = [...allPostsOfUserAndFriends]
+            allPostsOfUserAndFriendsCopy.forEach((post) => {
+                post.isFriendPost = true
+            })
+
+            allPostsCopy = [...allPostsCopy, ...allPostsOfUserAndFriendsCopy]
+
+            let uniquePosts = []
+            let counts = {}
+            for(const post of allPostsCopy){
+                if(!counts[post.id]){
+                    counts[post.id] = true
+                    uniquePosts.push(post)
+                }
+            }
+
+            dispatch(postGetSuccessful(uniquePosts))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postGetFailure(error.toString()))
         })
     }
 }
 
-
 //POST REQUEST==================================================
 export function postPost(value){
+    console.log("postPost")
     return async (dispatch, getState) => {
         dispatch(postPending())
 
@@ -286,10 +310,13 @@ export function postPost(value){
             if(r.ok) return r.json()
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
-        .then((resp) => {
-            dispatch(postSuccess(resp))
+        .then((newPost) => {
+            let newPostCopy = {...newPost}
+            newPostCopy.isFriendPost = true
+            dispatch(postSuccess(newPostCopy))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postFailure(error.toString()))
         })
     }
@@ -297,6 +324,7 @@ export function postPost(value){
 
 //PATCH REQUEST===================================================
 export function patchPost(value, p_id){
+    console.log("patchPost")
     return async (dispatch, getState) => {
         dispatch(postPatchPending())
         await fetch(`/post/${p_id}`, {
@@ -310,22 +338,26 @@ export function patchPost(value, p_id){
             if(r.ok) return r.json()
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
-        .then((resp) => {
-            console.log(resp)
-            dispatch(postPatchSuccess(resp))
+        .then((editedPost) => {
+            let editedPostCopy = {...editedPost}
+            editedPostCopy.isFriendPost = true
+            dispatch(postPatchSuccess(editedPostCopy))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postPatchFailure(error.toString()))
         })
     }
 }
 
 //DELETE REQUEST===================================================
-export function deletePost(p_id){
+export function deletePost(post){
+    console.log("deletePost")
     return async (dispatch, getState) => {
         dispatch(postDeletePending())
+        const {id} = post
 
-        await fetch(`/post/${p_id}`, {
+        await fetch(`/post/${id}`, {
             method: "DELETE",
             headers: {
                 'Content-Type': 'application/json'
@@ -333,12 +365,50 @@ export function deletePost(p_id){
         })
         .then(async (r) => {
             if(r.ok){
-                dispatch(postDeleteSuccess(p_id))
+                dispatch(postDeleteSuccess(id))
+                for(let attr in post){
+                    if(attr === "post_like_notifications"){
+                        for(const postLikeNote of post[attr]){
+                            dispatch(deleteNotificationSucceeded({
+                                type: attr,
+                                id: postLikeNote["id"]
+                            }))
+                        }
+                    }
+                    else if(attr === "comments"){
+                        const comments = post[attr]
+                        for(let i = 0; i < comments.length; i++){
+                            for(let commentAttr in comments[i]){
+                                if(commentAttr === "comment_like_notifications"){
+                                    const commentLikeNoteArray = comments[i][commentAttr]
+                                    
+                                    for(const commentLikeNote of commentLikeNoteArray){
+                                        dispatch(deleteNotificationSucceeded({
+                                            type: commentAttr,
+                                            id: commentLikeNote["id"]
+                                        }))
+                                    }
+                                }
+                                else if(commentAttr === "comment_notification"){
+                                    const commentNoteArray = comments[i][commentAttr]
+                                    for(const commentNote of commentNoteArray){
+
+                                        dispatch(deleteNotificationSucceeded({
+                                            type: "comment_notifications",
+                                            id: commentNote["id"]
+                                        })) 
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 return
             }
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postDeleteFailure(error.toString()))
         })
     }
@@ -346,6 +416,7 @@ export function deletePost(p_id){
 
 //POST COMMENT REQUEST============================================
 export function postComment(value){
+    console.log("postComment")
     return async(dispatch, getState) => {
         dispatch(commentPostPending())
 
@@ -364,6 +435,7 @@ export function postComment(value){
             dispatch(commentPostSuccess(resp))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(commentPostFailure(error.toString()))
         })
     }
@@ -371,6 +443,7 @@ export function postComment(value){
 
 //PATCH COMMENT REQUEST===========================================
 export function patchComment(value, c_id){
+    console.log("patchComment")
     return async(dispatch, getState) => {
         dispatch(commentPatchPending())
 
@@ -389,6 +462,7 @@ export function patchComment(value, c_id){
             dispatch(commentPatchSuccess(resp, c_id))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(commentPatchFailure(error.toString()))
         })
     }
@@ -396,6 +470,7 @@ export function patchComment(value, c_id){
 
 //DELETE COMMENT REQUEST========================================
 export function deleteComment(c_id){
+    console.log("deleteComment")
     return async(dispatch, getState) => {
         dispatch(commentDeletePending())
 
@@ -413,6 +488,7 @@ export function deleteComment(c_id){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(commentDeleteFailure(error.toString()))
         })
     }
@@ -420,6 +496,7 @@ export function deleteComment(c_id){
 
 //POST POSTLIKE REQUEST=========================================
 export function postPostLike(value){
+    console.log("postPostLike")
     return async(dispatch, getState) => {
         dispatch(postLikePostPending())
 
@@ -438,6 +515,7 @@ export function postPostLike(value){
             dispatch(postLikePostSuccess(resp))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postLikePostFailure(error.toString()))
         })
     }
@@ -445,6 +523,7 @@ export function postPostLike(value){
 
 //DELETE POSTLIKE REQUEST========================================
 export function deletePostLike(post_like_id){
+    console.log("deletePostLike")
     return async(dispatch, getState) => {
         dispatch(postLikeDeletePending())
         await fetch(`/post/like/${post_like_id}`, {
@@ -461,6 +540,7 @@ export function deletePostLike(post_like_id){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(postLikeDeleteFailure(error.toString()))
         })
     }
@@ -468,6 +548,7 @@ export function deletePostLike(post_like_id){
 
 //POST COMMENTLIKE REQUEST======================================
 export function postCommentLike(value){
+    console.log("postCommentLike")
     return async(dispatch, getState) => {
         dispatch(commentLikePostPending())
 
@@ -486,6 +567,7 @@ export function postCommentLike(value){
             dispatch(commentLikePostSuccess(resp))
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(commentLikePostFailure(error.toString()))
         })
     }
@@ -493,6 +575,7 @@ export function postCommentLike(value){
 
 //DELETE COMMENTLIKE REQUEST====================================
 export function deleteCommentLike(comment_like_id){
+    console.log("deleteCommentLike")
     return async(dispatch, getState) => {
         dispatch(commentLikeDeletePending())
 
@@ -510,10 +593,13 @@ export function deleteCommentLike(comment_like_id){
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})
         })
         .catch((error) => {
+            console.log(error.toString())
             dispatch(commentLikeDeleteFailure(error.toString()))
         })
     }   
 }
+
+
 
 export const { 
     postGetSuccessful, postGetPending, postGetFailure, 
@@ -526,7 +612,8 @@ export const {
     postLikePostSuccess, postLikePostFailure, postLikePostPending,
     postLikeDeleteSuccess, postLikeDeleteFailure, postLikeDeletePending,
     commentLikePostSuccess, commentLikePostFailure, commentLikePostPending,
-    commentLikeDeleteSuccess, commentLikeDeleteFailure, commentLikeDeletePending
+    commentLikeDeleteSuccess, commentLikeDeleteFailure, commentLikeDeletePending,
+    clearAllPosts
 } = postSlice.actions
 
 export default postSlice.reducer

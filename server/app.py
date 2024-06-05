@@ -12,23 +12,6 @@ import shutil
 from errors import raise_error, NetworkError, ValidationError, AuthenticationError, AuthorizationError, DatabaseError, error_to_dict, network_error
 from image import image_to_base64_uri
 
-#============= Error Handling ==============================================#
-
-class NoSearchResultsError(Exception):
-    def __init__(self, message="No results found"):
-        self.message = message
-        super().__init__(self.message)
-
-class NoSearchQueryError(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
-
-class NetworkError(Exception):
-    def __init__(self, message="Network Error"):
-        self.message = message
-        super().__init__(self.message)
-
 #============ For Testing Purposes Only!!! ==================================#
 
 class FriendshipTest(Resource):
@@ -142,7 +125,7 @@ class TestCreateAnAccount(Resource):
 @app.before_request
 def check_user_session():
     endpoints_without_session_check = ["login", "logout", "checksession", "onuserlistrefresh", 
-                                       "createanaccount", "testcreateanaccount"]
+                                       "createanaccount", "testcreateanaccount", "posttest", "usertest", "specificuser"]
     if request.endpoint not in endpoints_without_session_check and "user_id" not in session:
         #may need a try except block. Need testing
         raise_error("AUTHZ-001")
@@ -263,23 +246,33 @@ class UserSearch(Resource):
         try:
             response = request.get_json()
             search_query = response["search_query"]
+            dict_rules = (
+                "posts", "-posts.post_like_notifications", "-posts.user",
+                "-posts.comments.comment_like_notifications", "-posts.comments.comment_notifications",
+                "-comment_like_notifications", "-comment_notifications", "-post_like_notifications",
+                "-posts.comments.comment_notification")
             
             search_query_w_wildcard = search_query + "%"
             previous_search_results = cache.get('search_results')
             previous_search_query = cache.get('search_query')
 
             logged_in_user = User.query.filter(User.id == session["user_id"]).first()
-            logged_in_user_dict = logged_in_user.to_dict()
-            logged_in_user_friends = [friend.to_dict() for friend in logged_in_user.friends]
+            logged_in_user_dict = logged_in_user.to_dict(rules=dict_rules)
+            logged_in_user_friends = [friend.to_dict(rules=dict_rules) for friend in logged_in_user.friends]
 
-            logged_in_user_pending_friends = [friend.to_dict() for friend in logged_in_user.pending_friends]
+            logged_in_user_pending_friends = [friend.to_dict(rules=dict_rules) for friend in logged_in_user.pending_friends]
 
             #first time searching here and when user deletes a letter from the search query
             if (not previous_search_results and not previous_search_query and search_query) or \
                 (len(previous_search_query) > len(search_query)):
 
-                filtered_users = [user.to_dict() for user in User.query.filter(User.username.like(search_query_w_wildcard)).all()
-                                  if user.to_dict() not in logged_in_user_friends and user.to_dict() not in logged_in_user_pending_friends]
+                if len(search_query) == 0:
+                    return make_response([], 200)
+                
+                print("search query: ",search_query)
+
+                filtered_users = [user.to_dict(rules=dict_rules) for user in User.query.filter(User.username.like(search_query_w_wildcard)).all()
+                                  if user.to_dict(rules=dict_rules) not in logged_in_user_friends and user.to_dict(rules=dict_rules) not in logged_in_user_pending_friends]
                 search_results = []
 
                 for friend in logged_in_user_friends:
@@ -289,6 +282,7 @@ class UserSearch(Resource):
                     elif search_query.lower() in friend["username"].lower():
                         friend_status = {"isFriend": True, "isPending": False}
                         search_results.append({**friend, **friend_status})
+
 
                 for friend in logged_in_user_pending_friends:
                     if friend["username"] == search_query:
@@ -305,7 +299,7 @@ class UserSearch(Resource):
                         friend_status = {"isFriend": False, "isPending": False}
                         search_results.append({**user, **friend_status})
 
-                combined = filtered_users + logged_in_user_friends
+                combined = filtered_users + logged_in_user_friends + logged_in_user_pending_friends
                 combined_filtered = [user for user in combined if user != logged_in_user_dict]
 
                 for user in combined_filtered:
@@ -338,19 +332,25 @@ class UserSearch(Resource):
             else:
                 raise_error("VAL-002")
         except ValidationError as e:
-            return make_response(error_to_dict(e), 400)
+            return make_response([], 200)
         except:
             return make_response(network_error, 404)
 
 class Friends(Resource):
     def get(self):
+        dict_rules = (
+            "posts", "-posts.post_like_notifications", "-posts.user",
+            "-posts.comments.comment_like_notifications", "-posts.comments.comment_notifications",
+            "-comment_like_notifications", "-comment_notifications", "-post_like_notifications",
+            "-posts.comments.comment_notification")
+        
         user_id = session['user_id']
         try:
             user = User.query.filter(User.id == user_id).first()
             friends = []
 
             for friend in user.all_friends:
-                friend_to_add = friend["value"].to_dict()
+                friend_to_add = friend["value"].to_dict(rules=dict_rules)
                 friend_to_add["status"] = friend["status"]
                 friends.append(friend_to_add)
 
@@ -373,6 +373,19 @@ class FriendsEdit(Resource):
             return make_response({"message": "Friend deleted successfully"},200)
         except:
             return make_response(network_error, 404)
+        
+class SpecificUser(Resource):
+    def get(self, user_id):
+        try:
+            user = User.query.filter(User.id == user_id).first()
+            user_dict = user.to_dict(rules=(
+                "posts", "-posts.post_like_notifications", "-posts.user",
+                "-posts.comments.comment_like_notifications", "-posts.comments.comment_notifications",
+                "-comment_like_notifications", "-comment_notifications", "-post_like_notifications",
+                "-posts.comments.comment_notification"))
+            return make_response(user_dict, 200)
+        except:
+            return make_response({"message": "Error"}, 404)
 
 
 class FriendRequest(Resource):
@@ -441,6 +454,7 @@ class Posts(Resource):
             sorted_post_list = sorted(post_list, key=lambda post: post.updated_at)
             sorted_post_list_to_dict = [post.to_dict() for post in sorted_post_list]
 
+            print([return_post.id for return_post in sorted_post_list])
             return make_response(sorted_post_list_to_dict, 200)
         except:
             return make_response(network_error, 404)
@@ -485,6 +499,7 @@ class Posts(Resource):
 class PostEdit(Resource):
     def delete(self, p_id):
         try:
+            print("post delete")
             post_to_delete = Post.query.filter(Post.id == p_id).first()
             user_id = post_to_delete.user_id
             post_id = post_to_delete.id
@@ -493,7 +508,7 @@ class PostEdit(Resource):
             db.session.commit()
 
             profile_path_to_delete = f'../client/phase-5-project/public/images/{user_id}_folder/{user_id}_posts_folder/{user_id}_{post_id}.jpg'
-            shutil.rmtree(profile_path_to_delete, ignore_errors=True)
+            os.remove(profile_path_to_delete)
 
             if os.path.exists(profile_path_to_delete):
                 raise_error("DB-004")
@@ -666,17 +681,22 @@ class PostLikes(Resource):
             user_id = session["user_id"]
             post_id = response["post_id"]
 
-            try:
-                post_like = PostLike(
-                    isLiked=isLiked,
-                    user_id=user_id,
-                    post_id=post_id
-                )
-
-                db.session.add(post_like)
-                db.session.commit()
-            except:
+            print("here")
+            identical_post_likes = PostLike.query.filter(PostLike.user_id == user_id,
+                                                         PostLike.post_id == post_id).all()
+        
+            print("not after")
+            if len(identical_post_likes) > 0:
                 raise_error("VAL-011")
+
+            post_like = PostLike(
+                isLiked=isLiked,
+                user_id=user_id,
+                post_id=post_id
+            )
+
+            db.session.add(post_like)
+            db.session.commit()
 
             sender_username = User.query.filter(User.id == user_id).first().username
             reciever_id = Post.query.filter(Post.id == post_id).first().user_id
@@ -690,6 +710,7 @@ class PostLikes(Resource):
                 )
                 db.session.add(post_like_notification)
                 db.session.commit()
+
             return make_response(post_like.to_dict(), 200)
         except ValidationError as e:
             return make_response(error_to_dict(e), 400)
@@ -714,27 +735,46 @@ class CommentLikes(Resource):
             isLiked = response["isLiked"]
             comment_id = response["comment_id"]
 
-            try:
-                comment_like = CommentLike(
-                    isLiked=isLiked,
-                    user_id=liker_id,
-                    comment_id=comment_id
-                )
-                db.session.add(comment_like)
-                db.session.commit()
-            except:
+            identical_comment_likes = CommentLike.query.filter(CommentLike.user_id == liker_id,
+                                                               CommentLike.comment_id == comment_id).all()
+            
+            print("before if statement VAL-012")
+            
+            if len(identical_comment_likes) > 0:
                 raise_error("VAL-012")
 
+            comment_like = CommentLike(
+                isLiked=isLiked,
+                user_id=liker_id,
+                comment_id=comment_id
+            )
+            db.session.add(comment_like)
+            db.session.commit()
+
             comment = Comment.query.filter(Comment.id == comment_id).first()
+            comment_id = comment.id
+            print("comment: ", comment)
             commenter_id = comment.user_id
+            print("commenter id: ",commenter_id)
             commenter_username = comment.user.username
+            print("commenter username: ", commenter_username)
 
             post = Post.query.filter(Post.id == comment.post_id).first()
+            print("post: ", post)
             poster_id = post.user_id
+            print("post poster id: ", poster_id)
+
+            print("liker ID: ", liker_id, "Commenter ID: ", commenter_id)
+            print("liker ID: ", liker_id, "Commenter ID: ", commenter_id)
 
             liker_username = User.query.filter(User.id == liker_id).first().username
+            print(liker_username)
 
-            if liker_id == poster_id:
+            if liker_id == poster_id and liker_id == commenter_id:
+                print("am i here?")
+                return make_response(comment_like.to_dict(), 200)
+            
+            elif liker_id == poster_id:
                 cln = CommentLikeNotification(
                     sender_id=liker_id,
                     reciever_id=commenter_id,
@@ -743,9 +783,10 @@ class CommentLikes(Resource):
                 )
                 db.session.add(cln)
                 db.session.commit()
-                return make_response(cln.to_dict(), 200)
+                return make_response(comment_like.to_dict(), 200)
 
             elif liker_id == commenter_id:
+                print("I liked my own comment")
                 cln = CommentLikeNotification(
                     sender_id=liker_id,
                     reciever_id=poster_id,
@@ -754,7 +795,8 @@ class CommentLikes(Resource):
                 )
                 db.session.add(cln)
                 db.session.commit()
-                return make_response(cln.to_dict(), 200)
+                print("Did it go thru?")
+                return make_response(comment_like.to_dict(), 200)
             
             else:
                 cln1 = CommentLikeNotification(
@@ -774,9 +816,7 @@ class CommentLikes(Resource):
                 db.session.add_all([cln1, cln2])
                 db.session.commit()
 
-                all_cln = [cln1, cln2]
-                all_cln_dict = [cln.to_dict() for cln in all_cln]
-                return make_response(all_cln_dict, 200)
+                return make_response(comment_like.to_dict(), 200)
 
         except ValidationError as e:
             return make_response(error_to_dict(e), 400)
@@ -830,6 +870,7 @@ api.add_resource(onUserListRefresh, "/onrefresh")
 api.add_resource(FriendRequest, "/friendships/send_request")
 api.add_resource(UserPassword, "/users/password/<int:user_id>")
 api.add_resource(UserSearch, "/user/search")
+api.add_resource(SpecificUser, "/user/<int:user_id>")
 
 api.add_resource(Friends, "/user/friends")
 api.add_resource(FriendsEdit, "/user/friends/<int:f_id>")
@@ -843,6 +884,7 @@ api.add_resource(Posts, "/posts", endpoint="check_session")
 api.add_resource(PostEdit, "/post/<int:p_id>")
 api.add_resource(PostLikes, "/post/like")
 api.add_resource(PostDislike, "/post/like/<int:post_like_id>")
+api.add_resource(PostLikeNotifications, "/post/like/notification/<int:pln_id>")
 
 api.add_resource(Comments, '/comment')
 api.add_resource(CommentNotifications, '/comment/notification/<int:cn_id>')

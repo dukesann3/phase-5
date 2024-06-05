@@ -1,7 +1,7 @@
 import PostBlock from "../post/PostBlock"
 import 'semantic-ui-css/semantic.min.css'
 import "../../CSS/profileinfo.css"
-import { Card } from "semantic-ui-react"
+import { CardGroup } from "semantic-ui-react"
 
 function ProfileInfo({user, posts}){
 
@@ -23,10 +23,18 @@ function ProfileInfo({user, posts}){
                 </div>
             </div>
             {
-                posts.map((post) => {
-                    return <Card><PostBlock key={post.id} post={post}/></Card>
-                })
+                posts ?
+                <CardGroup>
+                {
+                    posts.map((post) => {
+                        return <PostBlock key={post.id} post={post} postOwner={user}/>
+                    })
+                }
+                </CardGroup>
+                :
+                console.log("no posts")
             }
+
         </div>
     )
 }

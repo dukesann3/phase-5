@@ -312,6 +312,11 @@ export function deleteUser(user_id){
         .then(async (r) => {
             if(r.ok){
                 dispatch(deleteUserSuccess())
+                dispatch(logoutSucceeded())
+                dispatch(userLogout())
+                dispatch(clearAllPosts())
+                dispatch(clearAllUsers())
+                dispatch(clearAllFriends())
                 return
             }
             return await r.json().then(error => {throw new Error(makeSentenceError(error))})

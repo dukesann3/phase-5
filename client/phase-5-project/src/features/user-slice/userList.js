@@ -111,7 +111,6 @@ export function fetchUserList(searchQuery){
                     }
                 })
             }
-            
             dispatch(fetchSuccess(fetchedUserList))
         })
         .catch((error) => {

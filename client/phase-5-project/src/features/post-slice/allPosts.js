@@ -325,6 +325,7 @@ export function postPost(value){
 //PATCH REQUEST===================================================
 export function patchPost(value, p_id){
     console.log("patchPost")
+
     return async (dispatch, getState) => {
         dispatch(postPatchPending())
         await fetch(`/post/${p_id}`, {
@@ -342,6 +343,9 @@ export function patchPost(value, p_id){
             let editedPostCopy = {...editedPost}
             editedPostCopy.isFriendPost = true
             dispatch(postPatchSuccess(editedPostCopy))
+
+            //navigate... re-fetch 
+            //reload page once updated...
         })
         .catch((error) => {
             console.log(error.toString())

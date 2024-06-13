@@ -295,36 +295,36 @@ class User(db.Model, SerializerMixin):
     friendships = db.relationship(
         "Friendship",
         primaryjoin="or_(User.id == Friendship.reciever_id, User.id == Friendship.sender_id)",
-        cascade="all, delete"
+        cascade="all, delete-orphan"
     )
 
     friend_request_notifications = db.relationship(
         "FriendRequestNotification",
         primaryjoin="(User.id == FriendRequestNotification.reciever_id)",
-        cascade="all, delete"
+        cascade="all, delete-orphan"
     )
 
-    posts = db.relationship("Post", back_populates="user", cascade="all, delete")
-    comments = db.relationship("Comment", back_populates="user", cascade="all, delete")
-    post_like = db.relationship("PostLike", back_populates="user", cascade="all, delete")
-    comment_like = db.relationship("CommentLike", back_populates="user", cascade="all, delete")
+    posts = db.relationship("Post", back_populates="user", cascade="all, delete-orphan")
+    comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
+    post_like = db.relationship("PostLike", back_populates="user", cascade="all, delete-orphan")
+    comment_like = db.relationship("CommentLike", back_populates="user", cascade="all, delete-orphan")
 
     post_like_notifications = db.relationship(
         "PostLikeNotification",
         primaryjoin="(User.id == PostLikeNotification.reciever_id)",
-        cascade="all, delete"
+        cascade="all, delete-orphan"
     )
 
     comment_like_notifications = db.relationship(
         "CommentLikeNotification",
         primaryjoin="(User.id == CommentLikeNotification.reciever_id)",
-        cascade="all, delete"
+        cascade="all, delete-orphan"
     )
 
     comment_notifications = db.relationship(
         "CommentNotification",
         primaryjoin="(User.id == CommentNotification.reciever_id)",
-        cascade="all, delete"
+        cascade="all, delete-orphan"
     )
 
     @hybrid_property
